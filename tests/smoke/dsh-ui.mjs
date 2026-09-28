@@ -8,4 +8,8 @@ if (!Number.isSafeInteger(ready.launcherPid) || !Number.isSafeInteger(ready.host
 if (ready.launcherPid === ready.hostPid) {
   throw new Error('DSH Host did not run in an independent process')
 }
+const panel = requireReport(reports, 'workbench-panel-verified')
+if (panel.panel !== 'deskwork') {
+  throw new Error('workbench panel report did not name the deskwork panel')
+}
 console.log('M0 DSH UI smoke passed')

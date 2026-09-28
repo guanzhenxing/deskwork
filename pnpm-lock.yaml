@@ -119,6 +119,8 @@ importers:
         specifier: workspace:*
         version: link:../desktop-contracts
 
+  packages/deskwork-workbench: {}
+
   packages/home-lease:
     dependencies:
       '@deepseek-ai/dsh-atomic-write':

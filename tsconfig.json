@@ -30,6 +30,9 @@
       "path": "packages/desktop-recovery-bridge"
     },
     {
+      "path": "packages/deskwork-workbench"
+    },
+    {
       "path": "packages/home-lease"
     },
     {

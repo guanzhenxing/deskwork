@@ -1,0 +1,6 @@
+# Insert the workbench as a Loader row: the row keeps the no-op host half
+# addressable and puts the `dsh.client` half into the browser roster that
+# the client-modules node half scans into window.__DSH_BOOT__.
+- insert:
+    - id: deskwork-workbench
+      name: '@deskwork/workbench'
