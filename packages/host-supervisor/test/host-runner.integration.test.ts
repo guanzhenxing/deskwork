@@ -160,7 +160,7 @@ function expectCompleteOfficialBootGraph(
 describe('real DSH Host runner', () => {
   it('loads a profile-local bundle by its bare package name without mutating the profile', async () => {
     const home = await testHome()
-    const ref = createProfileRef(home, 'desktop')
+    const ref = createProfileRef(home, 'deskwork')
     await reconcileDesktopProfile(ref, createIsolatedHomeAuthority(home, path.dirname(home)))
     const bundle = path.join(ref.dir, 'node_modules', '@fixture', 'local-bundle')
     await mkdir(bundle, { recursive: true })
@@ -191,7 +191,7 @@ describe('real DSH Host runner', () => {
     const entriesBefore = (await readdir(ref.dir)).sort()
     const host = await runDshHost({
       home,
-      profileName: 'desktop',
+      profileName: 'deskwork',
       mode: 'normal',
       capability: 'c'.repeat(43),
       leaseGeneration: 'lease-generation-1',
@@ -210,7 +210,7 @@ describe('real DSH Host runner', () => {
   it('keeps initialized profile files compatible with the pinned public DSH format', async () => {
     const home = await testHome()
     const upstreamHome = await testHome()
-    const ref = createProfileRef(home, 'desktop')
+    const ref = createProfileRef(home, 'deskwork')
     const upstreamDir = path.join(upstreamHome, 'profiles', 'desktop')
     await reconcileDesktopProfile(ref, createIsolatedHomeAuthority(home, path.dirname(home)))
     initProfile(upstreamDir, [
@@ -236,7 +236,7 @@ describe('real DSH Host runner', () => {
     await expect(
       runDshHost({
         home,
-        profileName: 'desktop',
+        profileName: 'deskwork',
         mode: 'normal',
         capability: 'c'.repeat(43),
         leaseGeneration: 'lease-generation-1',
@@ -250,12 +250,12 @@ describe('real DSH Host runner', () => {
   it('refuses to delete a replacement launch root during disposal', async () => {
     const home = await testHome()
     await reconcileDesktopProfile(
-      createProfileRef(home, 'desktop'),
+      createProfileRef(home, 'deskwork'),
       createIsolatedHomeAuthority(home, path.dirname(home)),
     )
     const host = await runDshHost({
       home,
-      profileName: 'desktop',
+      profileName: 'deskwork',
       mode: 'normal',
       capability: 'c'.repeat(43),
       leaseGeneration: 'lease-generation-1',
@@ -274,7 +274,7 @@ describe('real DSH Host runner', () => {
 
   it('boots the desktop profile and publishes an authenticated official Web surface', async () => {
     const home = await testHome()
-    const ref = createProfileRef(home, 'desktop')
+    const ref = createProfileRef(home, 'deskwork')
     await reconcileDesktopProfile(ref, createIsolatedHomeAuthority(home, path.dirname(home)))
     const profileEntries = (await readdir(ref.dir)).sort()
     const capability = 'c'.repeat(43)
@@ -283,7 +283,7 @@ describe('real DSH Host runner', () => {
 
     const host = await runDshHost({
       home,
-      profileName: 'desktop',
+      profileName: 'deskwork',
       mode: 'normal',
       capability,
       leaseGeneration,
@@ -336,7 +336,7 @@ describe('real DSH Host runner', () => {
   it('boots the complete official Web graph from an independent Node Host process', async () => {
     const home = await testHome()
     await reconcileDesktopProfile(
-      createProfileRef(home, 'desktop'),
+      createProfileRef(home, 'deskwork'),
       createIsolatedHomeAuthority(home, path.dirname(home)),
     )
     const probe = createNativeProcessProbe({
@@ -368,7 +368,7 @@ describe('real DSH Host runner', () => {
 
     const ready = await supervisor.start({
       home,
-      profileName: 'desktop',
+      profileName: 'deskwork',
       mode: 'normal',
       lease,
       probe,
@@ -384,7 +384,7 @@ describe('real DSH Host runner', () => {
   it('boots the rc.1 Host with the narrow loopback ready contract', async () => {
     const home = await testHome()
     await reconcileDesktopProfile(
-      createProfileRef(home, 'desktop'),
+      createProfileRef(home, 'deskwork'),
       createIsolatedHomeAuthority(home, path.dirname(home)),
     )
     const probe = createNativeProcessProbe({
@@ -416,7 +416,7 @@ describe('real DSH Host runner', () => {
 
     const ready = await supervisor.start({
       home,
-      profileName: 'desktop',
+      profileName: 'deskwork',
       mode: 'normal',
       lease,
       probe,

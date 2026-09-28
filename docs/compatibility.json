@@ -20,7 +20,7 @@
     "minor": 0
   },
   "profile": {
-    "name": "desktop",
+    "name": "deskwork",
     "schemaVersion": 1,
     "isolatedHomePolicy": "electron-userData-isolated"
   },

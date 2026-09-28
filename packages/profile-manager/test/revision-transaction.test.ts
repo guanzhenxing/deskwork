@@ -53,12 +53,12 @@ async function leasedHome(): Promise<{
   const lease = await acquireHomeLease({
     home,
     entrypoint: 'desktop',
-    profile: 'desktop',
+    profile: 'deskwork',
     appVersion: '0.0.0',
     probe: sameProbe(),
     guard: createInProcessGuardLock(),
   })
-  return { ref: createProfileRef(home, 'desktop'), lease }
+  return { ref: createProfileRef(home, 'deskwork'), lease }
 }
 
 function sameProbe(): ProcessProbe {
@@ -329,7 +329,7 @@ describe('revision transactions', () => {
   it('never settles or rolls back another profile\u2019s transactions', async () => {
     const { ref, lease } = await leasedHome()
     // Build an interrupted transaction owned by a different profile —
-    // planDesktopReconcile only owns 'desktop', so hand-craft the plan the
+    // planDesktopReconcile only owns the app-owned profile, so hand-craft the plan the
     // way another entrypoint's journal would look on disk.
     const otherRef = createProfileRef(ref.home, 'other')
     const otherPlan = {
@@ -391,7 +391,7 @@ describe('revision transactions', () => {
     const { ref, lease } = await leasedHome()
     const smuggled = {
       ...ref,
-      dir: path.join(ref.home, 'profiles', 'desktop'),
+      dir: path.join(ref.home, 'profiles', 'deskwork'),
     }
     const plan = {
       ref: smuggled,
@@ -442,7 +442,7 @@ describe('pruneRetainedTransactions', () => {
     return JSON.stringify({
       schemaVersion: 1,
       id,
-      ref: { home, name: 'desktop', dir: path.join(home, 'profiles', 'desktop') },
+      ref: { home, name: 'deskwork', dir: path.join(home, 'profiles', 'deskwork') },
       state: 'committed',
       createdAt,
       writes: [],

@@ -111,9 +111,9 @@ describe('planCliInvocation', () => {
       profile: 'headless',
     })
     expect(planCliInvocation(['web'])).toEqual({ kind: 'passthrough', profile: 'web' })
-    expect(planCliInvocation(['plugin', '--profile', 'desktop', 'add', '@example/a'])).toEqual({
+    expect(planCliInvocation(['plugin', '--profile', 'deskwork', 'add', '@example/a'])).toEqual({
       kind: 'passthrough',
-      profile: 'desktop',
+      profile: 'deskwork',
     })
     expect(planCliInvocation(['--profile=web', 'inner'])).toEqual({
       kind: 'passthrough',
@@ -170,9 +170,9 @@ describe('planCliInvocation', () => {
       kind: 'passthrough',
       profile: 'x',
     })
-    expect(planCliInvocation(['plugin', 'add', '@example/a', '--profile', 'desktop'])).toEqual({
+    expect(planCliInvocation(['plugin', 'add', '@example/a', '--profile', 'deskwork'])).toEqual({
       kind: 'passthrough',
-      profile: 'desktop',
+      profile: 'deskwork',
     })
     expect(planCliInvocation(['plugin', 'remove', 'a', 'b', '--profile=x'])).toEqual({
       kind: 'passthrough',
@@ -336,7 +336,7 @@ describe('runBundledCli', () => {
       spawns += 1
       return makeFakeChild(0).spawn(input)
     }
-    const code = await runBundledCli(['plugin', '--profile', 'desktop', 'add', '@example/a'], {
+    const code = await runBundledCli(['plugin', '--profile', 'deskwork', 'add', '@example/a'], {
       env: { DESKWORK_HOME: home },
       probe: fakeProbe,
       guard: createInProcessGuardLock(),
@@ -367,7 +367,7 @@ describe('runBundledCli', () => {
     )
     const stderr = new MemoryStderr()
     let spawns = 0
-    const code = await runBundledCli(['plugin', '--profile', 'desktop', 'add', '@example/a'], {
+    const code = await runBundledCli(['plugin', '--profile', 'deskwork', 'add', '@example/a'], {
       env: { DESKWORK_HOME: home },
       probe: fakeProbe,
       guard: createInProcessGuardLock(),
@@ -450,7 +450,7 @@ describe('runBundledCli', () => {
       }
     }
     const code = await runBundledCli(
-      ['plugin', '--profile', 'desktop', 'add', '@example/a', 'with space', '--', '--patch'],
+      ['plugin', '--profile', 'deskwork', 'add', '@example/a', 'with space', '--', '--patch'],
       {
         env: { DESKWORK_HOME: home },
         probe: fakeProbe,
@@ -461,14 +461,14 @@ describe('runBundledCli', () => {
     )
     expect(code).toBe(0)
     expect(sentArgv).toEqual([
-      ['plugin', '--profile', 'desktop', 'add', '@example/a', 'with space', '--', '--patch'],
+      ['plugin', '--profile', 'deskwork', 'add', '@example/a', 'with space', '--', '--patch'],
     ])
     const authorization = child.forwarded()[0] as { kind: string; argv: readonly string[] }
     expect(authorization.kind).toBe('dsh-native-authorized')
     expect(authorization.argv).toEqual([
       'plugin',
       '--profile',
-      'desktop',
+      'deskwork',
       'add',
       '@example/a',
       'with space',
@@ -479,7 +479,7 @@ describe('runBundledCli', () => {
     // child identity attached before boot authorization was delivered.
     expect(ownerAtAuthorization).toMatchObject({
       entrypoint: 'bundled-cli',
-      profile: 'desktop',
+      profile: 'deskwork',
       host: { pid: 5555, startIdentity: 'cli-child-os' },
       pendingSpawn: false,
     })
@@ -492,7 +492,7 @@ describe('runBundledCli', () => {
     const other = await acquireHomeLease({
       home,
       entrypoint: 'desktop',
-      profile: 'desktop',
+      profile: 'deskwork',
       appVersion: '0.0.0',
       probe: fakeProbe,
       guard: createInProcessGuardLock(),
@@ -663,7 +663,7 @@ describe('runBundledCli', () => {
     const held = await acquireHomeLease({
       home,
       entrypoint: 'desktop',
-      profile: 'desktop',
+      profile: 'deskwork',
       appVersion: '0.0.0',
       probe: fakeProbe,
       guard: createInProcessGuardLock(),
@@ -700,7 +700,7 @@ describe('runBundledCli', () => {
     const dead = await acquireHomeLease({
       home,
       entrypoint: 'bundled-cli',
-      profile: 'desktop',
+      profile: 'deskwork',
       appVersion: '0.0.0',
       probe: {
         ...staleProbe,

@@ -43,7 +43,7 @@ describe.skipIf(!helperAvailable)('projection cache quarantine (real lease)', ()
     const lease = await acquireHomeLease({
       home: dir,
       entrypoint: 'desktop',
-      profile: 'desktop',
+      profile: 'deskwork',
       appVersion: '0.0.0',
       probe: createNativeProcessProbe({
         helperPath: defaultLeaseHelperPath(),

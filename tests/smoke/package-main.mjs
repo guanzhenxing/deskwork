@@ -552,7 +552,7 @@ function recoveryScenario(install) {
     const fixture = await makeControllerHome('recovery')
     const poisonPatch = 'cordis:\n  this: [is: not: valid: yaml\n'
     try {
-      const profileDir = path.join(fixture.home, 'profiles', 'desktop')
+      const profileDir = path.join(fixture.home, 'profiles', 'deskwork')
       await mkdir(profileDir, { recursive: true, mode: 0o700 })
       await writeFile(
         path.join(profileDir, 'package.json'),
@@ -593,7 +593,7 @@ function recoveryScenario(install) {
       }
       // The poisoned user patch must survive byte-exact (it is user content).
       const patchBytes = await readFile(
-        path.join(fixture.home, 'profiles', 'desktop', 'cordis.patch.yml'),
+        path.join(fixture.home, 'profiles', 'deskwork', 'cordis.patch.yml'),
         'utf8',
       )
       if (patchBytes !== poisonPatch) throw new Error('the poisoned user patch was modified')
@@ -657,14 +657,14 @@ function cliPluginScenario(install) {
       )
       const added = await runInstalledCli(
         install.cliEntry,
-        ['plugin', '--profile', 'desktop', 'add', fixturePackage],
+        ['plugin', '--profile', 'deskwork', 'add', fixturePackage],
         { home: fixture.home, cwd: fixture.userData, timeoutMs: 240_000 },
       )
       if (added.code !== 0) {
         throw new Error(`plugin add exited ${added.code}: ${added.output.slice(-500)}`)
       }
       const manifest = JSON.parse(
-        await readFile(path.join(fixture.home, 'profiles', 'desktop', 'package.json'), 'utf8'),
+        await readFile(path.join(fixture.home, 'profiles', 'deskwork', 'package.json'), 'utf8'),
       )
       if (manifest.dependencies?.['@fixture/local-plugin'] === undefined) {
         throw new Error('plugin add did not record the fixture dependency')
@@ -675,7 +675,7 @@ function cliPluginScenario(install) {
       const installedPackage = path.join(
         fixture.home,
         'profiles',
-        'desktop',
+        'deskwork',
         'node_modules',
         '@fixture',
         'local-plugin',

@@ -8,7 +8,7 @@ Deskwork（案头）是基于 DeepSeek Harness（DSH）的本地 AI 工作台。
 
 - 官方 DSH Web UI 的原生窗口、Dock、托盘、菜单与单实例生命周期；
 - DSH Host 运行在独立 Node-capable 子进程中；Host 崩溃或启动失败时桌面壳保持存活，进入带结构化诊断的恢复窗口；
-- 默认使用 `desktop` profile 与 Deskwork 自己的 home `~/.deskwork`（不指向官方 CLI 的 `~/.dsh`）；桌面端与 `dsh-native` CLI 在整 home lease 下顺序共享凭据、设置、会话与 storages（双向会话接续）；
+- 默认使用 `deskwork` profile（上游把 `desktop` 保留给官方应用） 与 Deskwork 自己的 home `~/.deskwork`（不指向官方 CLI 的 `~/.dsh`）；桌面端与 `dsh-native` CLI 在整 home lease 下顺序共享凭据、设置、会话与 storages（双向会话接续）；
 - 非破坏性启动恢复：profile 走逐文件修订事务，只在修订校验通过时回滚本次自动修改，绝不自动覆盖 home 级用户数据；
 - Safe Mode：不加载正常 `desktop-plugin` 与第三方 bundle 的最小恢复会话；
 - home 兼容性准入：跨版本数据 epoch 与格式预检，未知格式与不安全降级在写入前拒绝；

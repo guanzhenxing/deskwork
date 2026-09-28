@@ -20,7 +20,7 @@ export const PRODUCT = Object.freeze({
   appId: 'local.dsh.harness.desktop',
   binName: 'dsh-desktop',
   cliName: 'dsh-native',
-  defaultProfileName: 'desktop',
+  defaultProfileName: 'deskwork',
   settingsNamespace: 'dsh-native-shell',
   defaultPort: 0,
   rendererPartition: 'persist:dsh-desktop-renderer',

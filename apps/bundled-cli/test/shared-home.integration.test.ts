@@ -54,7 +54,7 @@ describe.skipIf(!helperAvailable)('sequential shared home (real DSH graph)', () 
       expect(headless.code).toBe(3)
       expect(headless.output).toContain('HOME_BUSY')
       const plugin = await runDshNative(
-        ['plugin', '--profile', 'desktop', 'add', '@example/unavailable'],
+        ['plugin', '--profile', 'deskwork', 'add', '@example/unavailable'],
         { home: fixture.home, cwd: fixture.cwd },
       )
       expect(plugin.code).toBe(3)

@@ -10,7 +10,7 @@
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `<home>`        | `resolveDesktopHome()`（`packages/home-lease`）：`$DESKWORK_HOME` trim 后非空时生效（支持 `~` 展开，相对路径相对进程 cwd），否则为 `~/.deskwork`（Deskwork 自有 home，不指向官方 CLI 的 `~/.dsh`）；解析结果不得为 filesystem root。上游的 `DSH_HOME` **不是输入**——入口解析从不读它，仅由入口把它设置给引擎子进程 |
 | `<isolatedHome>` | `<userData>` 下的专属隔离 home；受支持隔离冒烟入口专用，由 Electron 单实例/测试夹具独占，不是共享 `<home>`，不创建 lease                                                               |
-| `<profile>`     | `<home>/profiles/desktop`                                                                                                                                                                        |
+| `<profile>`     | `<home>/profiles/deskwork`（上游把 `desktop` 这个名字保留给官方 Electron 应用，CLI 侧会被拒绝）                                                                                                  |
 | `<safeProfile>` | Safe Mode 使用 `<home>/profiles/desktop-safe-mode`（精确三 bundle），同时是未来插件市场的前置能力                                                                                                |
 | `<userData>`    | Electron 设置产品身份后返回的 `app.getPath('userData')`；macOS 预期位于 Application Support 下固定的 `Deskwork` 目录（`dataDirectoryName`，不随产品展示名改名迁移）                |
 | `<testHome>`    | 测试通过系统临时目录 API 单独创建的 DSH home，绝不能指向真实 `<home>`                                                                                                                             |

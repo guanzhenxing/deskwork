@@ -45,7 +45,7 @@ async function leaseOf(dir: string): Promise<HomeLease> {
   return acquireHomeLease({
     home: dir,
     entrypoint: 'desktop',
-    profile: 'desktop',
+    profile: 'deskwork',
     appVersion: '0.0.0',
     probe: sameProbe(),
     guard: createInProcessGuardLock(),

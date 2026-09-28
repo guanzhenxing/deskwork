@@ -52,7 +52,7 @@ async function heldLease(home: string) {
   return acquireHomeLease({
     home,
     entrypoint: 'desktop',
-    profile: 'desktop',
+    profile: 'deskwork',
     appVersion: '0.0.0',
     probe: new SameProbe(),
     guard: createInProcessGuardLock(),
@@ -63,10 +63,10 @@ describe('reconcileDesktopProfile lease authority', () => {
   it('reconciles under a live home lease', async () => {
     const home = await testHome()
     const lease = await heldLease(home)
-    const result = await reconcileDesktopProfile(createProfileRef(home, 'desktop'), lease)
+    const result = await reconcileDesktopProfile(createProfileRef(home, 'deskwork'), lease)
     expect(result.changed).toBe(true)
     expect(
-      JSON.parse(await readFile(path.join(home, 'profiles', 'desktop', 'package.json'), 'utf8')),
+      JSON.parse(await readFile(path.join(home, 'profiles', 'deskwork', 'package.json'), 'utf8')),
     ).toMatchObject({
       dsh: { profile: { bundles: [...DESKTOP_BUNDLE_PREFIX] } },
     })
@@ -76,11 +76,11 @@ describe('reconcileDesktopProfile lease authority', () => {
   it('refuses writes after the lease was released', async () => {
     const home = await testHome()
     const lease = await heldLease(home)
-    await reconcileDesktopProfile(createProfileRef(home, 'desktop'), lease)
+    await reconcileDesktopProfile(createProfileRef(home, 'deskwork'), lease)
     await lease.release()
-    await expect(reconcileDesktopProfile(createProfileRef(home, 'desktop'), lease)).rejects.toThrow(
-      /released/u,
-    )
+    await expect(
+      reconcileDesktopProfile(createProfileRef(home, 'deskwork'), lease),
+    ).rejects.toThrow(/released/u)
   })
 
   it('rejects a plain { home, generation } literal masquerading as a lease', async () => {
@@ -88,10 +88,10 @@ describe('reconcileDesktopProfile lease authority', () => {
     const fake = { home, generation: 'forged' } as unknown as Parameters<
       typeof reconcileDesktopProfile
     >[1]
-    await expect(reconcileDesktopProfile(createProfileRef(home, 'desktop'), fake)).rejects.toThrow(
+    await expect(reconcileDesktopProfile(createProfileRef(home, 'deskwork'), fake)).rejects.toThrow(
       /authority/u,
     )
-    const manifest = path.join(home, 'profiles', 'desktop', 'package.json')
+    const manifest = path.join(home, 'profiles', 'deskwork', 'package.json')
     await expect(readFile(manifest, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
   })
 
@@ -99,9 +99,9 @@ describe('reconcileDesktopProfile lease authority', () => {
     const home = await testHome()
     const other = await testHome()
     const lease = await heldLease(other)
-    await expect(reconcileDesktopProfile(createProfileRef(home, 'desktop'), lease)).rejects.toThrow(
-      /does not match/u,
-    )
+    await expect(
+      reconcileDesktopProfile(createProfileRef(home, 'deskwork'), lease),
+    ).rejects.toThrow(/does not match/u)
     await lease.release()
   })
 })
@@ -117,7 +117,7 @@ describe('reconcileDesktopProfile', () => {
     async (filename) => {
       const home = await testHome()
       const external = await testHome()
-      const ref = createProfileRef(home, 'desktop')
+      const ref = createProfileRef(home, 'deskwork')
       await mkdir(ref.dir, { recursive: true })
       const target = path.join(external, filename)
       await writeFile(target, '{"private":true}\n')
@@ -132,7 +132,7 @@ describe('reconcileDesktopProfile', () => {
 
   it('initializes a missing desktop profile in an isolated home', async () => {
     const home = await testHome()
-    const ref = createProfileRef(home, 'desktop')
+    const ref = createProfileRef(home, 'deskwork')
     const result = await reconcileDesktopProfile(
       ref,
       createIsolatedHomeAuthority(home, path.dirname(home)),
@@ -151,7 +151,7 @@ describe('reconcileDesktopProfile', () => {
 
   it('repairs only the owned prefix and preserves third-party order and metadata', async () => {
     const home = await testHome()
-    const ref = createProfileRef(home, 'desktop')
+    const ref = createProfileRef(home, 'deskwork')
     await reconcileDesktopProfile(ref, createIsolatedHomeAuthority(home, path.dirname(home)))
     const manifestPath = path.join(ref.dir, 'package.json')
     await writeFile(
@@ -198,7 +198,7 @@ describe('reconcileDesktopProfile', () => {
 
   it('is idempotent and leaves unrelated profiles unchanged', async () => {
     const home = await testHome()
-    const ref = createProfileRef(home, 'desktop')
+    const ref = createProfileRef(home, 'deskwork')
     const unrelated = createProfileRef(home, 'web')
     await mkdir(unrelated.dir, { recursive: true })
     const unrelatedPath = path.join(unrelated.dir, 'package.json')
@@ -219,7 +219,7 @@ describe('reconcileDesktopProfile', () => {
   it('rejects write authority for another home before creating files', async () => {
     const home = await testHome()
     const otherHome = await testHome()
-    const ref = createProfileRef(home, 'desktop')
+    const ref = createProfileRef(home, 'deskwork')
     await expect(
       reconcileDesktopProfile(ref, createIsolatedHomeAuthority(otherHome, path.dirname(otherHome))),
     ).rejects.toThrow(/authority/u)
@@ -231,7 +231,7 @@ describe('reconcileDesktopProfile', () => {
   it('rejects a desktop profile symlink before writing outside the isolated home', async () => {
     const home = await testHome()
     const external = await testHome()
-    const ref = createProfileRef(home, 'desktop')
+    const ref = createProfileRef(home, 'deskwork')
     await mkdir(path.dirname(ref.dir), { recursive: true })
     await symlink(external, ref.dir, 'dir')
 
@@ -248,7 +248,7 @@ describe('reconcileDesktopProfile', () => {
     const external = await testHome()
     const linkedHome = path.join(parent, 'm0-dsh-home')
     await symlink(external, linkedHome, 'dir')
-    const ref = createProfileRef(linkedHome, 'desktop')
+    const ref = createProfileRef(linkedHome, 'deskwork')
 
     await expect(
       reconcileDesktopProfile(
@@ -257,7 +257,7 @@ describe('reconcileDesktopProfile', () => {
       ),
     ).rejects.toThrow(/isolated home.*symlink/u)
     await expect(
-      readFile(path.join(external, 'profiles', 'desktop', 'package.json')),
+      readFile(path.join(external, 'profiles', 'deskwork', 'package.json')),
     ).rejects.toMatchObject({ code: 'ENOENT' })
   })
 })
