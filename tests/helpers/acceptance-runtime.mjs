@@ -4,7 +4,7 @@ import process from 'node:process'
 export const ACCEPTANCE_NODE_VERSION = '24.11.1'
 
 /**
- * Acceptance-evidence commands (smoke:package, verify:plugin-intake) must
+ * Acceptance-evidence commands (smoke:package) must
  * run under the pinned Node runtime. Acceptance driven by a different Node
  * (a machine whose default node moved on to another
  * major) is not comparable evidence: its failures cannot be attributed to

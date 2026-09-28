@@ -83,14 +83,13 @@ deskwork/
 | `pnpm smoke:lifecycle`                 | 关窗隐藏、托盘唤出、重复启动聚焦、退出无残留            |
 | `pnpm smoke:package`                   | 安装级制品冒烟（对 `.app`/DMG 副本执行）                |
 | `pnpm smoke:startup-performance`       | 启动性能测量                                            |
-| `pnpm verify:plugin-intake`            | 插件引入制品级隔离演练                                  |
 | `pnpm check:docs`                      | 检查必需文档、兼容性事实、本地链接与文本格式            |
 | `pnpm check`                           | 全部快速阻塞门禁                                        |
 | `pnpm dsh-native -- <args>`            | 配套 CLI 开发入口（持 lease）                           |
 
 打包固定 electron-builder 26.15.3（配置 schema 以安装包内的 app-builder-lib 为准）；Host/CLI 运行时全部来自 `release/staging`（pnpm `--prod` deploy + 官方 Node/pnpm 制品校验），`.app` 内不依赖仓库 `node_modules`、pnpm store、系统 Node/pnpm 或 ASAR 虚拟路径。
 
-`pnpm smoke:package` 与 `verify:plugin-intake` 都在安装制品（`.app`/DMG 副本）上执行，源码 smoke 不构成安装包验收。
+`pnpm smoke:package` 在安装制品（`.app`/DMG 副本）上执行，源码 smoke 不构成安装包验收。
 
 命令名是仓库契约；package 内部脚本可以变化，但 CI 和开发文档不引用临时实现路径。
 

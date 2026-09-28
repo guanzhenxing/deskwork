@@ -1,5 +1,0 @@
-# Synthetic bundle for the M5 plugin-intake rehearsal: declares one inert
-# patch so the upstream profile loader accepts it as a bundle.
-- insert:
-    - id: m5-example-bundle
-      name: "@fixture/m5-example-bundle"

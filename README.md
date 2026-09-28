@@ -101,7 +101,6 @@ corepack pnpm@11.7.0 smoke:package    # 安装级制品冒烟
 
 已知限制：
 
-- 第三方 bundle 的引入审查（校验、隔离装入、字节复验）可用，但第三方 bundle 在 profile 内启动不在本版能力内（上游 loader 按名解析的布局限制，见[插件引入](docs/plugin-intake.md)）；`verify:plugin-intake` 的启动轮在该设计落地前保持失败。
 
 ## 文档
 
@@ -111,7 +110,6 @@ corepack pnpm@11.7.0 smoke:package    # 安装级制品冒烟
 - [home-compatibility 协议](docs/protocols/home-compatibility.md)：跨版本数据准入；
 - [启动恢复分类协议](docs/protocols/startup-recovery.md)：失败分类、回滚资格与恢复窗口；
 - [数据布局](docs/data-layout.md)：路径、所有权、恢复和迁移；
-- [插件引入](docs/plugin-intake.md)：第三方 bundle 的审查式引入工作流；
 - [升级指南](docs/upgrade-guide.md)：手动升级、回退与升级演练；
 - [upstream-baseline](docs/upstream-baseline.md)：上游 DSH 基线、闭包与补丁对账；
 - [开发指南](docs/development.md)：环境、命令、测试与发布流程；

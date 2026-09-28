@@ -13,7 +13,6 @@ const requiredDocuments = [
   'docs/data-layout.md',
   'docs/development.md',
   'docs/compatibility.json',
-  'docs/plugin-intake.md',
   'docs/upgrade-guide.md',
   'docs/upstream-baseline.md',
   'docs/protocols/home-compatibility.md',

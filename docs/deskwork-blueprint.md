@@ -3,7 +3,7 @@
 - 状态：设计记录（产品已定名 Deskwork，中文"案头"）。身份、home 与 profile 命名等核心决策已落地（见 deskwork-plan-v2 的执行进度）；功能工作台尚未实现
 - 日期：2026-09-27
 - 性质：新产品方向的设计说明；功能范围以 deskwork-plan-v2 的执行进度为准
-- 相关文档：[upstream-baseline](upstream-baseline.md)、[upgrade-guide](upgrade-guide.md)、[plugin-intake](plugin-intake.md)
+- 相关文档：[upstream-baseline](upstream-baseline.md)、[upgrade-guide](upgrade-guide.md)
 
 ## 1. 背景与决策
 
@@ -149,7 +149,7 @@ deskwork/
 - **office**：技术栈对标——Tiptap（TableKit/Image）做 Word 共写、`docx` 做导入导出、React PPT 编辑器 + pptx-viewer、Univer/ExcelJS（标注实验性）、PDF.js + pdf-lib。"工作副本"模型：交付物 = 会话产出的可编辑副本，AI 写入侧栏、人直接改正文、导出为标准格式；
 - **skills**：workdsh 踩坑最密的区域（其一上午连发六个修复才对齐）：按官方 DSH skill name 管理条目、安装校验与上游 loader 行为对齐、skill roots 隔离、分类取真实值。实现前先读上游 `packages/skill` 的 loader 源码，不按 SKILL.md 文件名想当然；
 - **browser-session**：两种实现选择——(a) workdsh 式：Electron 隐藏页 + Playwright MCP 经 CDP 连到该页，零额外浏览器但与壳耦合；(b) 独立受管 Chromium 实例，解耦但进程与体积代价高。取 (a)，但把接缝收进 provider 包内，不渗入其他插件；
-- **生态目录**：SkillHub/dsh-market 只读 catalog 客户端；安装走官方 `dsh plugin` 生命周期 + 逐字节校验（复用本仓库 plugin-intake 的审查工作流与制品级隔离演练思路）+ 兼容性清单过滤；
+- **生态目录**：SkillHub/dsh-market 只读 catalog 客户端；安装走官方 `dsh plugin` 生命周期 + 逐字节校验 + 兼容性清单过滤（重建引入审查时参考 git 历史中的 plugin-intake 实现）；
 - **identity/access/audit**：Profile 内部服务，经 `cordis.patch.yml` 激活，不做可单独管理的插件。
 
 ### 6.3 组合、门禁与打包
@@ -199,7 +199,6 @@ deskwork/
 | `packages/home-lease`                          | 共享 home 顺序互斥（是否启用为产品决策）     |
 | `packages/profile-manager`                     | 逐文件修订事务恢复                           |
 | `packages/release-compatibility`               | home 兼容性准入（marker 最小检查与写入预约） |
-| `scripts/plugin-intake.mjs` 审查工作流         | 生态目录安装的逐字节校验与制品级隔离演练     |
 | `docs/upgrade-guide.md` 演练纪律               | 上游升级跟进流程（见 6.5）                   |
 
 本仓库已更名为 deskwork（GitHub 同步更名），作为新产品的蓝图与资产库：旧 v0.1.0 实现整体保留，作为上表资产的回迁来源；重建按 6.1 的工作区结构推进，逐阶段替换旧实现。
