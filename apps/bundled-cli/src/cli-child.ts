@@ -29,4 +29,11 @@ const authorization = await new Promise<Authorization>((resolve, reject) => {
 })
 
 process.argv = [process.argv[0] ?? 'node', authorization.dshBin, ...authorization.argv]
-await import(authorization.dshBin)
+// rc.2's bin guards its own entry with `import.meta.main`, which is false for
+// a plain import — runCli is the bin's exported entrypoint and parses the
+// spoofed process.argv exactly as the direct execution would.
+const mod = (await import(authorization.dshBin)) as { runCli?: () => Promise<void> | void }
+if (typeof mod.runCli !== 'function') {
+  throw new Error('dsh-native: the official CLI bin no longer exports runCli()')
+}
+await mod.runCli()

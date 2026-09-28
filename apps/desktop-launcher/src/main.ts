@@ -750,7 +750,11 @@ async function startApplication(): Promise<void> {
         appVersion: app.getVersion(),
         probe,
       }),
-    profile: createDesktopProfileRecovery({ home, profileName: bootProfileName }),
+    profile: createDesktopProfileRecovery({
+      home,
+      profileName: bootProfileName,
+      ownedProfileName: PRODUCT.defaultProfileName,
+    }),
     // Home compatibility chain (M4): after the lease, before any
     // profile/cache/Host write, on every session (normal and Safe Mode both
     // flow through this gate). Marker parse → read-only inspection →

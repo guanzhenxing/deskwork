@@ -23,6 +23,8 @@ import { quarantineProjectionCache } from './projection-cache.js'
 export type DesktopRecoveryOptions = Readonly<{
   home: string
   profileName: string
+  /** The app-owned profile the desktop template reconcile belongs to. */
+  ownedProfileName: string
   cacheThresholdBytes?: number
 }>
 
@@ -35,6 +37,7 @@ export type DesktopRecoveryOptions = Readonly<{
 export function createDesktopProfileRecovery(options: DesktopRecoveryOptions): ProfileRecoveryPort {
   const home = options.home
   const profileName = options.profileName
+  const ownedProfileName = options.ownedProfileName
   const normalRef = createProfileRef(home, profileName)
   const safeRef = createProfileRef(home, SAFE_PROFILE_NAME)
   const thresholdBytes = options.cacheThresholdBytes ?? 512 * 1024 * 1024
@@ -126,10 +129,10 @@ export function createDesktopProfileRecovery(options: DesktopRecoveryOptions): P
           )
         }
         adopted = applied[0]!.id
-        if (profileName !== 'desktop') {
-          // Only the desktop profile has an app-owned plan to re-verify the
-          // adopted candidate against; a non-desktop boot profile cannot
-          // prove the journal still matches its desired shape — fail closed.
+        if (profileName !== ownedProfileName) {
+          // Only the app-owned profile has an app-owned plan to re-verify the
+          // adopted candidate against; any other boot profile cannot prove
+          // the journal still matches its desired shape — fail closed.
           return needsReviewBlock(
             'a previous startup left this non-desktop profile mid-transaction; the profile was left untouched — inspect run/profile-transactions in the DSH home (the journal records the divergence)',
           )
@@ -145,7 +148,7 @@ export function createDesktopProfileRecovery(options: DesktopRecoveryOptions): P
         }
       }
       let result: Awaited<ReturnType<typeof reconcileDesktopProfile>> | undefined
-      if (profileName === 'desktop') {
+      if (profileName === ownedProfileName) {
         try {
           result = await reconcileDesktopProfile(normalRef, lease)
         } catch (error) {
@@ -161,10 +164,10 @@ export function createDesktopProfileRecovery(options: DesktopRecoveryOptions): P
           )
         }
       }
-      // A non-desktop boot profile (packaged smoke rounds) is owned by its
-      // creator — e.g. the CLI's plugin flow staged it. The app recovers its
-      // interrupted transactions and quarantines the shared cache, but never
-      // reconciles it against the desktop template.
+      // A boot profile the app does not own (packaged smoke rounds) is owned
+      // by its creator — e.g. the CLI's plugin flow staged it. The app
+      // recovers its interrupted transactions and quarantines the shared
+      // cache, but never reconciles it against the app-owned template.
       if (result !== undefined && adopted !== undefined && result.transactionId !== undefined) {
         // Lost a race with an edit between the plan check and the apply:
         // restore the fresh transaction's files, then block for review.

@@ -2,17 +2,21 @@ import { Buffer } from 'node:buffer'
 import { createServer } from 'node:http'
 
 /**
- * Deterministic loopback mock for the pinned DeepSeek chat adapter.
+ * Deterministic loopback mock for the pinned DeepSeek Messages adapter.
  *
- * The upstream adapter only speaks SSE at `<baseURL>/chat/completions` with
- * `stream: true`; a valid turn needs at least one non-empty content delta, a
- * finish chunk with usage, and a terminating `data: [DONE]`.
+ * The upstream adapter (rc.2) only speaks SSE at `<baseURL>/v1/messages` with
+ * Anthropic-style events; a valid turn needs message_start, at least one
+ * non-empty text delta, a stop reason, usage, and a terminating message_stop.
+ * An empty content body is refused by the adapter (EMPTY_RESPONSE).
  */
 export function createMockLlm() {
   const requests = []
   let replyIndex = 0
   const server = createServer((request, response) => {
-    if (request.method !== 'POST' || !request.url.endsWith('/chat/completions')) {
+    if (process.env.MOCK_LLM_TRACE !== undefined) {
+      console.error(`[mock-llm] ${request.method} ${request.url}`)
+    }
+    if (request.method !== 'POST' || !request.url.endsWith('/v1/messages')) {
       response.writeHead(404, { 'content-type': 'application/json' })
       response.end(JSON.stringify({ error: 'unexpected path' }))
       return
@@ -31,20 +35,18 @@ export function createMockLlm() {
         'content-type': 'text/event-stream',
         'cache-control': 'no-cache',
       })
-      response.write(
-        `data: ${JSON.stringify({
-          choices: [
-            { index: 0, delta: { role: 'assistant', content: reply }, finish_reason: null },
-          ],
-        })}\n\n`,
-      )
-      response.write(
-        `data: ${JSON.stringify({
-          choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
-          usage: { prompt_tokens: 12, completion_tokens: 5, total_tokens: 17 },
-        })}\n\n`,
-      )
-      response.write('data: [DONE]\n\n')
+      const frame = (type, data) => {
+        response.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`)
+      }
+      frame('message_start', { message: { usage: { input_tokens: 12 } } })
+      frame('content_block_start', { index: 0, content_block: { type: 'text', text: '' } })
+      frame('content_block_delta', { index: 0, delta: { type: 'text_delta', text: reply } })
+      frame('content_block_stop', { index: 0 })
+      frame('message_delta', {
+        delta: { stop_reason: 'end_turn' },
+        usage: { output_tokens: 5 },
+      })
+      frame('message_stop', {})
       response.end()
     })
   })
@@ -62,15 +64,12 @@ export function createMockLlm() {
   })
 
   return {
+    requests,
     started,
-    get requests() {
-      return requests
-    },
-    get baseURL() {
-      return server.address() === null ? undefined : `http://127.0.0.1:${server.address().port}`
-    },
     async stop() {
-      await new Promise((resolve) => server.close(() => resolve(undefined)))
+      await new Promise((resolve, reject) => {
+        server.close((error) => (error === undefined ? resolve() : reject(error)))
+      })
     },
   }
 }

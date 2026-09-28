@@ -54,6 +54,7 @@ describe.skipIf(!helperAvailable)('desktop recovery port with a non-desktop boot
         const port = createDesktopProfileRecovery({
           home: home.home,
           profileName: 'plugin-intake-rehearsal',
+          ownedProfileName: 'deskwork',
         })
         const prepared = await port.prepare(lease)
         expect(prepared).toEqual({ kind: 'ready', changed: false })

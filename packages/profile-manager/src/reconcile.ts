@@ -2,6 +2,8 @@ import { createHash, randomUUID } from 'node:crypto'
 import { lstat, mkdir, open, readFile, realpath, rename, rm } from 'node:fs/promises'
 import path from 'node:path'
 
+import { PRODUCT } from '@dsh-desktop/product-config'
+
 import { isHomeLease, type HomeLease } from '@dsh-desktop/home-lease'
 
 import { planDesktopReconcile } from './reconcile-plan.js'
@@ -225,8 +227,8 @@ export async function reconcileDesktopProfile(
   ref: ProfileRef,
   authority: ProfileWriteAuthority,
 ): Promise<ReconcileResult> {
-  if (ref.name !== 'desktop')
-    throw new Error('reconcileDesktopProfile only owns the desktop profile')
+  if (ref.name !== PRODUCT.defaultProfileName)
+    throw new Error('reconcileDesktopProfile only owns the app-owned profile')
 
   if (isHomeLease(authority)) {
     if (authority.home !== ref.home) {

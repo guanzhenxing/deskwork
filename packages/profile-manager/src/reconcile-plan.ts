@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto'
 import { lstat, readFile } from 'node:fs/promises'
 import path from 'node:path'
 
+import { PRODUCT } from '@dsh-desktop/product-config'
+
 import { isHomeLease, type ProfileWriteAuthority } from './reconcile.js'
 import type { HomeLease } from '@dsh-desktop/home-lease'
 import type { ProfileRef } from './profile-ref.js'
@@ -137,8 +139,8 @@ export async function planDesktopReconcile(
 ): Promise<ProfileReconcilePlan> {
   const lease = asLiveLease(authority, ref)
   if (lease !== undefined) await lease.assertHeld()
-  if (ref.name !== 'desktop') {
-    throw new Error('planDesktopReconcile only owns the desktop profile')
+  if (ref.name !== PRODUCT.defaultProfileName) {
+    throw new Error('planDesktopReconcile only owns the app-owned profile')
   }
   if (ref.dir !== path.join(ref.home, 'profiles', ref.name)) {
     throw new Error('ProfileRef directory does not match its home')

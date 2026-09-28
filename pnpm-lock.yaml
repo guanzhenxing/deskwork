@@ -186,6 +186,9 @@ importers:
       '@dsh-desktop/home-lease':
         specifier: workspace:*
         version: link:../home-lease
+      '@dsh-desktop/product-config':
+        specifier: workspace:*
+        version: link:../product-config
 
   packages/release-compatibility:
     dependencies:
