@@ -24,7 +24,7 @@ corepack pnpm@11.7.0 check
 ## 2. 目录结构
 
 ```text
-deepseek-harness-desktop/
+deskwork/
 ├── .github/workflows/            # CI 门禁（check / macOS 集成与冒烟 / 候选打包）
 ├── apps/
 │   ├── desktop-launcher/         # Electron 自举入口：应用身份、窗口/托盘/菜单、恢复 UI 与打包配置
@@ -36,16 +36,15 @@ deepseek-harness-desktop/
 │   ├── host-supervisor/          # 独立 Host 进程创建、握手校验、稳定性窗口与有界关停
 │   ├── profile-manager/          # ProfileRef、reconcile、修订事务恢复与 Safe Mode 投影
 │   ├── home-lease/               # 整 home 排他 lease、owner 身份与 doctor 清锁
-│   ├── release-compatibility/    # home 兼容性准入：marker、格式勘察、预检与写入预约
+│   ├── release-compatibility/    # home 兼容性准入：marker 最小检查与写入预约
 │   ├── product-config/           # 产品身份常量（产品名、数据目录名、CLI 名、默认 profile 名）
 │   └── shell-core/               # Electron 生命周期编排、窗口、托盘、日志与恢复状态
-├── scripts/                      # 构建与校验脚本：staging、打包、闭包/补丁对账、发行证据、升级演练、文档校验
+├── scripts/                      # 构建与校验脚本：staging、打包、闭包/补丁对账、文档校验
 │   └── dsh-native.mjs            # dsh-native 开发入口（持 lease）
 ├── tests/
 │   ├── smoke/                    # 源码级与安装级桌面冒烟（dsh-ui/host-crash/package 等）
 │   ├── helpers/                  # 隔离 home fixture、共享 home driver、mock LLM、启动性能探针
 │   ├── fixtures/                 # home 格式、插件引入与安装控制器测试夹具
-│   └── upgrade/                  # 跨版本升级演练驱动与夹具
 ├── build/                        # 兼容性策略、上游制品记录、electron-builder 配置与图标素材
 ├── patches/                      # 本地补丁账本（当前为空账本）
 └── docs/                         # 架构、协议、数据布局、路线图与开发文档

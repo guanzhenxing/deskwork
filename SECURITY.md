@@ -53,7 +53,7 @@ Host-process capability 只能证明消息来自 launcher 创建的 Host，不�
 | 导出秘密                   | 默认不提供；需要单独的安全设计评审才能增加                   |
 | 终端或系统级操作           | 展示准确操作目标，不接受 UI 传入任意 shell 字符串            |
 
-常规已授权设备握手可以调用 secure-store 的用途受限签名操作而不逐次弹窗，但 Host 永远不能取得原始私钥。
+未来引入 secure-store / 设备能力后，常规已授权设备握手可调用其用途受限签名操作而不逐次弹窗，但 Host 永远不能取得原始私钥。该能力当前不存在，本句为设计约束。
 
 ## DSH home 与 profile
 
@@ -64,7 +64,7 @@ Host-process capability 只能证明消息来自 launcher 创建的 Host，不�
 - profile 恢复只处理白名单并要求候选 SHA 仍匹配；
 - Desktop 不自动回滚 credentials、settings、home patch、sessions 或 storages；
 - 所有路径验证绝对父目录并拒绝危险 symlink；
-- 自动化测试绝不能使用真实 `~/.dsh`。
+- 自动化测试绝不能使用真实 `~/.dsh`（官方应用的家）或 `~/.deskwork`（Deskwork 自己的家）。
 
 ## 插件市场进入条件
 
@@ -82,7 +82,7 @@ Host-process capability 只能证明消息来自 launcher 创建的 Host，不�
 
 ## 远程访问进入条件
 
-Harness 始终绑定 loopback。独立 bridge 只能转发受限 surface，不得成为授权权威。
+Deskwork 始终绑定 loopback。独立 bridge 只能转发受限 surface，不得成为授权权威。
 
 远程访问开始前必须在固定 DSH 基线上证明：
 
@@ -98,7 +98,7 @@ Harness 始终绑定 loopback。独立 bridge 只能转发受限 surface，不�
 
 更新能力必须提供 Developer ID 签名、hardened runtime、notarization、可信元数据签名和迁移预检。
 
-launcher 保存校验后的 last-effective policy，并内置 Host 插件不能替换的信任根和 emergency stable source。Host 无法 boot 时，只允许使用这两类来源。上一版 DMG 只有在 compatibility manifest 证明格式可读时才能打开升级后的 home。
+launcher 保存校验后的 last-effective policy，并内置 Host 插件不能替换的信任根和 emergency stable source。Host 无法 boot 时，只允许使用这两类来源。旧版 DMG 不被允许假定能读取新版数据：home 准入按 marker 的 dataEpoch 拒绝（`HOME_DATA_UNSUPPORTED`），数据保持原状。
 
 ## 日志和诊断
 

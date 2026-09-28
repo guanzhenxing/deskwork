@@ -1,8 +1,8 @@
 # Deskwork 执行方案（v2）
 
-- 状态：定稿候选（v2.1；整合 2026-09-28 两轮五遍审查修订，第二轮记录见 §9）
+- 状态：执行中（v2.1；整合 2026-09-28 两轮五遍审查修订，第二轮记录见 §9；执行进度见 §2.1）
 - 日期：2026-09-28
-- 关系：整合并取代同日 `deskwork-plan.md` 草案（三遍审查版）；草案文件未删除，采纳本文后可删
+- 关系：整合并取代 `deskwork-plan.md` 草案（三遍审查版，已归档于 `docs/archive/deskwork-plan-v1.md`）
 - 相关文档：[蓝图](deskwork-blueprint.md)、[架构](architecture.md)、[开发指南](development.md)、[home-lease 协议](protocols/home-lease.md)、[home-compatibility 协议](protocols/home-compatibility.md)
 
 ## 1. 目标
@@ -11,12 +11,18 @@
 
 ## 2. 已定的事（不要重新讨论）
 
-| 项   | 定                                                          |
-| ---- | ----------------------------------------------------------- |
-| home | Deskwork 自己的应用数据目录，不指向 `~/.dsh`                |
-| 引擎 | `@deepseek-ai/dsh` 定到 `0.1.7-rc.2`（现 pin `0.1.2-rc.1`） |
-| 起点 | 仓库现有代码，不重写，不称"旧壳"                            |
-| 节奏 | 一次只改一件事，改完真跑，做完停下                          |
+| 项   | 定                                                                                                |
+| ---- | ------------------------------------------------------------------------------------------------- |
+| home | Deskwork 自己的应用数据目录 `~/.deskwork`，只认 `DESKWORK_HOME`（上游 `DSH_HOME` 已明确不是输入） |
+| 引擎 | `@deepseek-ai/dsh` 跟随上游 rc 基线，当前 `0.2.0-rc.1`                                            |
+| 起点 | 仓库现有代码，不重写，不称"旧壳"                                                                  |
+| 节奏 | 一次只改一件事，改完真跑，做完停下                                                                |
+
+### 2.1 执行进度（2026-09-28 更新）
+
+- **已完成**：第一段全部（1 身份与 home——后续经 4ef7220 收紧为只认 `DESKWORK_HOME`；2 引擎 0.1.7-rc.2；2b 准入最小化；3 真启动）；第二段全部（4 slot 机制、5/6 workbench 上侧栏）；第三段 7 前置（证据链摘除）；引擎再升级 0.2.0-rc.1（514be7f）；profile 改名 `deskwork`（24bf96b，上游保留 `desktop`）。
+- **进行中**：7（打包）与 7b（包名/appId 身份收尾）。
+- **未开始**：第四段工作台（8–14）、第五段 office（15）。
 
 ## 3. 保留、放弃、暂不动
 
@@ -41,7 +47,7 @@
 
 ## 4. 第 0 步 · 环境预检（动手前过一遍）
 
-1. 一切测试与冒烟用 `env -u DSH_HOME`：宿主环境把它设成 `~/.dsh`，隔离 home 夹具（`tests/helpers/isolated-home.mjs:47`）在它存在时拒绝运行。
+1. 一切测试与冒烟确保 `DESKWORK_HOME` 未设置（隔离 home 夹具在它存在时拒绝运行）；环境里残留的 `DSH_HOME` 对产品与夹具均无效（4ef7220 起解析只读 `DESKWORK_HOME`）。
 2. Node 用 nodejs.org 的 24.11.1（`/tmp/deskwork-spike/toolbin` 有现成 shim）；**绝不用 DSH 运行时自带的 node**——macOS Team ID 不匹配，加载不了 npm 安装的原生插件。
 3. pnpm 11.7.0；若 `node_modules` 曾由 pnpm 10 安装，`CI=true` 可跳过 purge 确认。
 4. `build:native` 与打包需要 Xcode Command Line Tools。
@@ -54,7 +60,7 @@
 
 | 步  | 做什么                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | 验收                                                            |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| 1   | **身份与 home 一次改完**：`packages/product-config/src/index.ts` 的 `name`/`displayName`/`dataDirectoryName` → `Deskwork`（蓝图 §3.1）；`packages/home-lease/src/home-paths.ts:37` 的默认值 `~/.dsh` → **`~/.deskwork`**；调用点两处（launcher `main.ts:536`、bundled CLI `main.ts:405`）；改写 `home-paths.test.ts` 的上游 parity 测试组；清扫硬编码旧名（grep `DeepSeek Harness` 字面量：11 处非测试代码、7 个文件，**含保留 smoke 的名字断言** `tests/smoke/package-main.mjs`、`startup-performance.mjs`、`plugin-intake.mjs`，不扫则 `smoke:package` 红；`tests/upgrade/rehearsal.mjs` 的命中随 7 前置删除，不用扫）；隔离夹具 `assertOutsideForbiddenRoots` 禁入清单加 `~/.deskwork`（与 `~/.dsh` 同等待遇）；同步文档（README、架构、数据布局的 `<home>` 定义）与共享 home 叙事文案。`DSH_HOME` 覆盖机制保留；`defaultProfileName` 不动                                                                                                      | 数据落在 `~/.deskwork`；`~/.dsh` 的 mtime 不变；`pnpm check` 绿 |
+| 1   | **身份与 home 一次改完**：`packages/product-config/src/index.ts` 的 `name`/`displayName`/`dataDirectoryName` → `Deskwork`（蓝图 §3.1）；`packages/home-lease/src/home-paths.ts:37` 的默认值 `~/.dsh` → **`~/.deskwork`**；调用点两处（launcher `main.ts:536`、bundled CLI `main.ts:405`）；改写 `home-paths.test.ts` 的上游 parity 测试组；清扫硬编码旧名（grep `DeepSeek Harness` 字面量：11 处非测试代码、7 个文件，**含保留 smoke 的名字断言** `tests/smoke/package-main.mjs`、`startup-performance.mjs`、`plugin-intake.mjs`，不扫则 `smoke:package` 红；`tests/upgrade/rehearsal.mjs` 的命中随 7 前置删除，不用扫）；隔离夹具 `assertOutsideForbiddenRoots` 禁入清单加 `~/.deskwork`（与 `~/.dsh` 同等待遇）；同步文档（README、架构、数据布局的 `<home>` 定义）与共享 home 叙事文案。`defaultProfileName` 不动。（执行备注：本步最初保留了 `DSH_HOME` 覆盖机制，后经产品决策收紧——`resolveDesktopHome` 只读 `DESKWORK_HOME`，见 4ef7220。）  | 数据落在 `~/.deskwork`；`~/.dsh` 的 mtime 不变；`pnpm check` 绿 |
 | 2   | **引擎 0.1.2-rc.1 → 0.1.7-rc.2**：第一个动作 `pnpm install`，真实规模以实测为准，之前不做任何估算。已知断点：`healProfilesModuleFallback`（`host-runner.ts:10` import，`:268`/`:289` 调用），候选替代 `createRuntimeResolution`，动手时以新包实际导出为准。注意：新导出 `removeLinkProjections` 清理的是 `<profile>/node_modules` → `.dsh-module-fallback` 的投影，与本壳 `profiles/.dsh-desktop-run-*/node_modules` 路径不同，**不要据此断定中性启动根多余**；cordis 4.0.2→4.0.4，`ctx.provide` 必须先于 `ctx.set`（实测）。本步同时更新 `build/upstream-artifacts.json`（新 tag/commit/npmVersion/闭包）并对账 `docs/upstream-baseline.md`——`verify:dsh-closure` 按 lockfile 强制闭包等于记录的 npmVersion，不更新则打包链必红。本步验收**不含**集成套件（准入会拒），全套验证归步 3；**本步与 2b 之间 `check:docs` 红是已知中间态**（`docs/compatibility.json` 的 `dshNpmVersion` 比对 + policy 证据卡住生成器），不触发中止条件，2b 落地后转绿 | lockfile 里 `@deepseek-ai/dsh*` 全为 `0.1.7-rc.2`；typecheck 过 |
 | 2b  | **准入链替换为最小检查**。理由：`SESSION_FORMAT_VERSION` 从 0 跳到 4、`dsh-settings-file` 包消失，而 `inspect-home.ts:14-20` 写死 0.1.2-rc.1 的格式 ID——第一次启动写入 v4 会话/新 settings 后，第二次启动必被旧勘察拒进恢复页（机制已在 `preflight.ts:44-75` 逐行核实）。动作按序：(a0) 清空 `build/compatibility-policy.json` 的 `formats[]`（保留 `dataEpoch`/`supportedDataEpochs`/`pluginApi`），`generate:compatibility` 重新生成 `docs/compatibility.json`；实现时确认 `parseReleaseManifest` 容忍空 formats（若严格拒绝则同步放宽，属本步接口修整面）。(a) 最小检查落在 `home-marker.ts` 链内——launcher（`main.ts:704-714`）与 CLI（`main.ts:299-313`、`:432`、`:476`）的调用点与失败分类不动；marker 预约照旧写入空 formats（解析允许，`home-admission.ts:42-55` 已核实）。(b) 隔离 home 连续启动两次验证。(c) 验证通过后删勘察与判定树及其测试                                                                                            | 空 home 连续两次启动都过准入；删除后 `pnpm check` 绿            |
 | 3   | **真启动**：launcher → utilityProcess → Host runner → surface，隔离 home。本壳自己的启动路径在 0.1.7-rc.2 下**从未验证过**（验证过的只是 CLI 路径），这是本步要回答的问题；起不来用 diagnose 系统化定位。起得来不算完——退出再起第二次，证明 2b 生效；**Safe Mode 也在 rc.2 下起一次**（safe profile 走同一 runner，三个固定 bundle，可能独立坏，`smoke:safe-mode` 现成）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Host ready、官方 UI 挂载；重启后依旧；Safe Mode 可进            |

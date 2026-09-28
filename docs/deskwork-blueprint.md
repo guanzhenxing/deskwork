@@ -1,8 +1,8 @@
 # Deskwork：产品与实现蓝图
 
-- 状态：草案（设计记录，未进入实现；产品已定名 Deskwork，中文"案头"）
+- 状态：设计记录（产品已定名 Deskwork，中文"案头"）。身份、home 与 profile 命名等核心决策已落地（见 deskwork-plan-v2 的执行进度）；功能工作台尚未实现
 - 日期：2026-09-27
-- 性质：新产品方向的设计说明；本文不改变本仓库 v0.1.0 的范围与承诺
+- 性质：新产品方向的设计说明；功能范围以 deskwork-plan-v2 的执行进度为准
 - 相关文档：[upstream-baseline](upstream-baseline.md)、[upgrade-guide](upgrade-guide.md)、[plugin-intake](plugin-intake.md)
 
 ## 1. 背景与决策
@@ -96,7 +96,7 @@ workdsh `packages/plugins/` 下共 18 个插件包，已发布 9 个；在库未
 - 逐文件修订事务的 profile 恢复（有界重试预算）；
 - home lease：Desktop 与 CLI 顺序共享同一 DSH home（workdsh 采用独立 profile 回避此问题，是否保留共享 home 是新产品需显式决策的选项）；
 - home 兼容性准入：跨版本数据 epoch 与格式预检，未知格式与不安全降级写入前拒绝；
-- 发行证据链：schema-2 发行清单、确定性 SBOM、许可证清单、DMG 摘要绑定、安装级冒烟与升级/降级演练。
+- 可复现打包：schema-2 发行清单、上游闭包对账、制品 SHA-256 绑定与安装级冒烟（SBOM/许可证清单/演练链已随转向删除）。
 
 ## 5. 技术底座
 
@@ -198,7 +198,7 @@ deskwork/
 | `packages/desktop-recovery-bridge` + Safe Mode | 最小恢复会话与第一方恢复桥                   |
 | `packages/home-lease`                          | 共享 home 顺序互斥（是否启用为产品决策）     |
 | `packages/profile-manager`                     | 逐文件修订事务恢复                           |
-| `packages/release-compatibility`               | 兼容性准入与发行证据链（SBOM/清单/摘要绑定） |
+| `packages/release-compatibility`               | home 兼容性准入（marker 最小检查与写入预约） |
 | `scripts/plugin-intake.mjs` 审查工作流         | 生态目录安装的逐字节校验与制品级隔离演练     |
 | `docs/upgrade-guide.md` 演练纪律               | 上游升级跟进流程（见 6.5）                   |
 

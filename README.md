@@ -11,8 +11,8 @@ Deskwork（案头）是基于 DeepSeek Harness（DSH）的本地 AI 工作台。
 - 默认使用 `deskwork` profile（上游把 `desktop` 保留给官方应用） 与 Deskwork 自己的 home `~/.deskwork`（不指向官方 CLI 的 `~/.dsh`）；桌面端与 `dsh-native` CLI 在整 home lease 下顺序共享凭据、设置、会话与 storages（双向会话接续）；
 - 非破坏性启动恢复：profile 走逐文件修订事务，只在修订校验通过时回滚本次自动修改，绝不自动覆盖 home 级用户数据；
 - Safe Mode：不加载正常 `desktop-plugin` 与第三方 bundle 的最小恢复会话；
-- home 兼容性准入：跨版本数据 epoch 与格式预检，未知格式与不安全降级在写入前拒绝；
-- 可复现的打包与发行证据：schema-2 发行清单、确定性 SBOM、许可证清单、DMG 摘要绑定与升级/降级演练；
+- home 兼容性准入：数据 epoch 检查（marker 的 schemaVersion 与 dataEpoch），不安全的降级写入在发生前拒绝；
+- 可复现打包：schema-2 发行清单、上游闭包对账与制品 SHA-256 绑定；
 - 插件引入（plugin intake）审查工作流：声明式 intake 记录 + 逐字节校验 + 制品级隔离演练。
 
 ## 重要并发限制
@@ -31,7 +31,7 @@ Deskwork（案头）是基于 DeepSeek Harness（DSH）的本地 AI 工作台。
 ```text
 Electron launcher / dsh-native wrapper
   → home-lease (whole-home writer lease)
-  → profile-manager (desktop profile reconcile)
+  → profile-manager (deskwork profile reconcile)
   → host-supervisor
       → independent DSH Host (waits for boot authorization)
           → desktop-plugin
@@ -55,7 +55,7 @@ corepack pnpm@11.7.0 package:dmg
 
 `generate:compatibility` 生成 `release/compatibility.json`（`release/` 不入库，全新 clone 后必须先生成一次，`package:dir` 的清单校验才可通过）。
 
-构建产物位于 `release/dist/`，SHA-256 与内嵌清单见 `release/artifacts.json`。手动升级、回退与升级演练见[升级指南](docs/upgrade-guide.md)。
+构建产物位于 `release/dist/`，SHA-256 与内嵌清单见 `release/artifacts.json`。手动升级与回退见[升级指南](docs/upgrade-guide.md)。
 
 ## 使用
 
@@ -71,7 +71,7 @@ corepack pnpm@11.7.0 dsh-native -- doctor --unlock   # 确认无活跃 owner 后
 
 - Node.js：24.11.1；
 - pnpm：11.7.0；
-- DSH：[`dsh-v0.1.2-rc.1`](https://github.com/deepseek-ai/deepseek-harness/tree/dsh-v0.1.2-rc.1)，commit [`a66e4702047846cdaa10c66c9d3df3951f5ea70d`](https://github.com/deepseek-ai/deepseek-harness/commit/a66e4702047846cdaa10c66c9d3df3951f5ea70d)。
+- DSH：[`dsh-v0.2.0-rc.1`](https://github.com/deepseek-ai/deepseek-harness/tree/dsh-v0.2.0-rc.1)，commit [`4878cdabd87d4041bdaff61d04c966883b9fd07a`](https://github.com/deepseek-ai/deepseek-harness/commit/4878cdabd87d4041bdaff61d04c966883b9fd07a)。
 
 机器可读版本权威是 [`docs/compatibility.json`](docs/compatibility.json) 与 lockfile；Markdown 中的版本只用于说明，不独立决定兼容性。上游基线与补丁对账见 [upstream-baseline](docs/upstream-baseline.md)。
 
@@ -95,15 +95,13 @@ corepack pnpm@11.7.0 smoke:package    # 安装级制品冒烟
 
 ## 范围与限制
 
-当前版本：**v0.1.0**（darwin-arm64）。候选已通过完整发布链（含安装级冒烟与跨版本升级演练）；按[开发指南](docs/development.md)的发布流程，完成一个日用观察周期后才正式标记为当前发布。
+引擎基线：**`@deepseek-ai/dsh` 0.2.0-rc.1**；包版本号沿用 0.1.0。**0.2.0-rc.1 基线的打包与安装级验收尚未完成**（此前 0.1.7-rc.2 的安装级冒烟进行到 14/16 时被升级打断）；完成验收前，请以源码方式运行（`pnpm start`）。
 
 以下能力不在当前版本内（进入条件见架构文档的进入条件表）：自动更新、插件市场、远程访问、setup wizard、桌面终端、多 profile UI、Windows/Linux 支持、预编译制品签名与公证。
 
 已知限制：
 
 - 第三方 bundle 的引入审查（校验、隔离装入、字节复验）可用，但第三方 bundle 在 profile 内启动不在本版能力内（上游 loader 按名解析的布局限制，见[插件引入](docs/plugin-intake.md)）；`verify:plugin-intake` 的启动轮在该设计落地前保持失败。
-
-Dock 图标与 Dock 右键退出已于 2026-09-09 完成人工验证。
 
 ## 文档
 
@@ -124,10 +122,10 @@ Dock 图标与 Dock 右键退出已于 2026-09-09 完成人工验证。
 
 ```text
 .github/workflows/   # CI 门禁
-docs/                # 架构、协议、路线图和开发文档
+docs/                # 架构、协议和开发文档（历史文档在 docs/archive/）
 scripts/             # 仓库验证与构建脚本
 apps/                # Electron launcher、bundled CLI（dsh-native）与独立 Host 入口
-packages/            # 契约、home-lease、profile、插件、监督器与 shell-core
+packages/            # 契约、home-lease、profile、插件、监督器、shell-core 与工作台 bundle
 tests/               # 隔离 home 的源码级桌面冒烟与共享 home driver
 ```
 

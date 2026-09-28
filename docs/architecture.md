@@ -67,7 +67,7 @@ Electron renderer 只加载 Host 发布的 authenticated loopback URL。Host run
 
 `packages/desktop-plugin`：
 
-- 声明正常 `desktop` profile 的 bundle patch；
+- 声明正常 `deskwork` profile 的 bundle patch；
 - 等待官方 `connection` 服务；
 - 校验 loopback URL 并通过 `desktopSurface` 发布 normal surface；
 - 缺少 launcher 能力时可读降级；
@@ -79,6 +79,12 @@ Electron renderer 只加载 Host 发布的 authenticated loopback URL。Host run
 - 在 `desktop-safe-mode` 中发布 recovery surface；
 - 不包含市场、profile 修改、产品设置或更新策略；
 - 不导入 Electron。
+
+`packages/deskwork-workbench`：
+
+- 产品工作台 bundle：官方侧栏入口与工作台面板（客户端半 + 空 host 半）；
+- 经 bundle patch 的 Loader 行进入客户端组合；
+- 产品功能按方案在此模式旁逐台扩展。
 
 ### 4.3 通用机制包
 
@@ -145,8 +151,8 @@ desktop-recovery-bridge
 launcher identity/single-instance
 → resolve DSH home
 → acquire home lease
-→ home compatibility admission（marker 读取 + 格式勘察 + 预检；写入预约随首次写入，见协议）
-→ profile-manager snapshots and reconciles ProfileRef("desktop")
+→ home compatibility admission（marker 的 schemaVersion 与 dataEpoch 检查；写入预约随首次写入，见协议）
+→ profile-manager snapshots and reconciles ProfileRef("deskwork")
 → host-supervisor creates private channel and Host runner
 → Host runner boots DSH and injects desktopSurface proxy
 → desktop-plugin obtains authenticated connection URL

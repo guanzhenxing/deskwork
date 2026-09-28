@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This pnpm workspace contains the macOS DeepSeek Harness Desktop shell. `apps/desktop-launcher` owns Electron startup and recovery UI; `apps/bundled-cli` provides `dsh-native`. Shared product boundaries live in `packages/`: contracts, home leasing, profiles, host supervision, plugins, recovery bridge, and shell core. Put package-local tests in `<package>/test/`; cross-process smoke drivers and fixtures are under `tests/smoke`, `tests/helpers`, and `tests/fixtures`. Architecture, protocols, and operating guidance belong in `docs/`.
+This pnpm workspace contains **Deskwork**, a local-first AI workbench built on the DeepSeek Harness (DSH) engine. `apps/desktop-launcher` owns Electron startup and recovery UI; `apps/bundled-cli` provides `dsh-native`. Shared product boundaries live in `packages/`: contracts, home leasing, profiles, host supervision, plugins, recovery bridge, shell core, and the `@deskwork/workbench` product bundle. Put package-local tests in `<package>/test/`; cross-process smoke drivers and fixtures are under `tests/smoke`, `tests/helpers`, and `tests/fixtures`. Architecture, protocols, and operating guidance belong in `docs/`.
 
 ## Build, Test, and Development Commands
 
@@ -23,7 +23,7 @@ Write TypeScript as ES modules and preserve package boundaries. Prettier (two-sp
 
 ## Testing Guidelines
 
-Vitest is the main test runner, with Node's built-in test runner for boundary-script tests. Add tests beside the package behavior they cover and write contract/state-machine tests before implementation when changing protocols, leases, profiles, host lifecycle, or privileged IPC. Integration and smoke tests must use an explicit isolated `<testHome>`; never use or delete a real `~/.dsh` directory. Run `pnpm check` for every change and the relevant integration or smoke command for process, recovery, or shared-home work.
+Vitest is the main test runner, with Node's built-in test runner for boundary-script tests. Add tests beside the package behavior they cover and write contract/state-machine tests before implementation when changing protocols, leases, profiles, host lifecycle, or privileged IPC. Integration and smoke tests must use an explicit isolated `<testHome>` (the fixture refuses to run while `DESKWORK_HOME` is set); never use or delete the real `~/.dsh` (the official app's home) or `~/.deskwork` (Deskwork's own home). Run `pnpm check` for every change and the relevant integration or smoke command for process, recovery, or shared-home work.
 
 ## Commits, Pull Requests, and Safety
 
