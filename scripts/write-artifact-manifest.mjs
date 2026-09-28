@@ -28,7 +28,7 @@ export async function collectArtifactRecords(distDirectory, embeddedManifestPath
     if (!entry.isFile() || !entry.name.endsWith('.dmg')) continue
     // A DMG left over from an earlier version must never be stamped with the
     // current identity: its embedded manifest predates this build, and
-    // verify:artifacts would (correctly) refuse the pair. dist is a single-
+    // a mismatched dist/manifest pair must never ship. dist is a single-
     // candidate directory — a stale artifact fails here with the cleanup
     // spelled out instead of slipping into the record set.
     if (!entry.name.includes(versionMarker)) {

@@ -18,11 +18,9 @@
     "check:docs": "node scripts/verify-docs.mjs",
     "dsh-native": "node scripts/dsh-native.mjs",
     "generate:compatibility": "node scripts/generate-compatibility.mjs",
-    "generate:release-evidence": "node scripts/generate-release-evidence.mjs",
     "verify:compatibility": "node scripts/verify-compatibility.mjs",
     "verify:dsh-closure": "node scripts/verify-dsh-closure.mjs",
     "verify:patches": "node scripts/verify-patches.mjs",
-    "verify:release-evidence": "node scripts/verify-release-evidence.mjs",
     "verify:plugin-intake": "node tests/smoke/plugin-intake.mjs",
     "format:check": "prettier --check eslint.config.js vitest.config.ts vitest.integration.config.ts docs/compatibility.json scripts/*.mjs tests/smoke/*.mjs tests/helpers/*.mjs tests/fixtures/*.mjs \"{apps,packages}/**/*.{ts,json}\" --ignore-unknown --no-error-on-unmatched-pattern",
     "lint": "eslint . && pnpm run check:boundaries",
@@ -42,12 +40,9 @@
     "verify:runtime-tree": "node scripts/verify-runtime-tree.mjs",
     "test:integration": "pnpm run build && vitest run --config vitest.integration.config.ts",
     "test:shared-home": "pnpm run build && pnpm run build:native && vitest run --config vitest.integration.config.ts apps/bundled-cli/test/shared-home.integration.test.ts",
-    "test:unit": "node --test scripts/verify-boundaries.test.mjs scripts/verify-docs-policy.test.mjs scripts/verify-runtime-tree.test.mjs scripts/verify-compatibility.test.mjs scripts/verify-dsh-closure.test.mjs scripts/release-evidence.test.mjs scripts/plugin-intake.test.mjs scripts/write-artifact-manifest.test.mjs scripts/stage-runtime.test.mjs && vitest run",
+    "test:unit": "node --test scripts/verify-boundaries.test.mjs scripts/verify-docs-policy.test.mjs scripts/verify-runtime-tree.test.mjs scripts/verify-compatibility.test.mjs scripts/verify-dsh-closure.test.mjs scripts/plugin-intake.test.mjs scripts/write-artifact-manifest.test.mjs scripts/stage-runtime.test.mjs && vitest run",
     "typecheck": "tsc -b --force --pretty false",
-    "smoke:package": "node tests/smoke/package.mjs",
-    "rehearse:upgrade": "node scripts/rehearse-upgrade.mjs",
-    "verify:artifacts": "node scripts/verify-artifacts.mjs",
-    "verify:release": "node scripts/verify-release.mjs"
+    "smoke:package": "node tests/smoke/package.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

@@ -32,7 +32,6 @@ const additionalPublicTextFiles = [
   'build/upstream-artifacts.json',
   'docs/compatibility.json',
   'scripts/generate-compatibility.mjs',
-  'scripts/generate-release-evidence.mjs',
   'scripts/stage-runtime.mjs',
 ]
 

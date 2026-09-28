@@ -10,6 +10,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
+    "@deskwork/workbench": "workspace:*",
     "@dsh-desktop/desktop-plugin": "workspace:*",
     "@dsh-desktop/home-lease": "workspace:*",
     "@dsh-desktop/host-supervisor": "workspace:*",

@@ -33,7 +33,7 @@
 1. **建记录**：为候选 bundle 写 intake 记录，`integrity` 用 `bundleDigest()` 从实际字节计算。
 2. **审查**：人工过记录与 bundle 内容（出处、许可证、能力声明）。
 3. **隔离验证**：`validatePluginIntake` 在任何 staging 之前跑通；拒绝时按 `PLUGIN_INTAKE_*` 错误码处置，修复后重来。
-4. **打包级演练**：`pnpm verify:plugin-intake` 用安装候选制品复演——记录校验 → 经候选自己的 `plugin --profile <新名> add` 流程把合成 fixture 只装入全新临时 profile → 对 staged 字节复验摘要（含加载器将导入的 bundle 模块与 profile 补丁层）→ **在该 intake profile 上经候选 CLI 完成一个真实回合（fail-closed 门）** → 默认 `desktop` profile 摘要前后逐字节一致。fixture bundle 是可加载的（`main: index.js` + 惰性 `apply()`，无副作用以保持摘要确定）。**当前状态（如实）**：启动轮是必经门、不可跳过——它受上游两处限制阻断（全新非模板 profile 无法完成回合的上游缺陷、嵌入式运行时 loader 按包名从自身位置解析导致 app bundle 内 loader 走不到 profile `node_modules` 的布局断链），因此该命令在限制解除前**保持失败**，而不是口头注明后返回成功。发行链（`verify:release`）以 `--launch-round=excluded` 只演练当前实际交付的引入能力（校验、装入、字节复验、隔离）；启动轮的 fail-closed 语义由独立命令 `verify:plugin-intake` 承载。Host 图上的 bundle 加载行为由 host-runner 集成测试覆盖。上游修复或设计落地后本门应自动转绿，无需改动。
+4. **打包级演练**：`pnpm verify:plugin-intake` 用安装候选制品复演——记录校验 → 经候选自己的 `plugin --profile <新名> add` 流程把合成 fixture 只装入全新临时 profile → 对 staged 字节复验摘要（含加载器将导入的 bundle 模块与 profile 补丁层）→ **在该 intake profile 上经候选 CLI 完成一个真实回合（fail-closed 门）** → 默认 `desktop` profile 摘要前后逐字节一致。fixture bundle 是可加载的（`main: index.js` + 惰性 `apply()`，无副作用以保持摘要确定）。**当前状态（如实）**：启动轮是必经门、不可跳过——它受上游两处限制阻断（全新非模板 profile 无法完成回合的上游缺陷、嵌入式运行时 loader 按包名从自身位置解析导致 app bundle 内 loader 走不到 profile `node_modules` 的布局断链），因此该命令在限制解除前**保持失败**，而不是口头注明后返回成功。Host 图上的 bundle 加载行为由 host-runner 集成测试覆盖。上游修复或设计落地后本门应自动转绿，无需改动。
 5. **入册**：记录与演练证据归档后，该 bundle 才具备被（人工）安装到真实 profile 的资格。
 
 ## 4. 边界

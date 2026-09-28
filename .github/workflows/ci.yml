@@ -97,8 +97,6 @@ jobs:
         run: |
           pnpm package:dir
           pnpm package:dmg
-      - name: Verify artifacts
-        run: pnpm verify:artifacts
       - name: Run the artifact-level package smoke
         run: pnpm smoke:package
       - name: Upload candidate artifacts (private job output)

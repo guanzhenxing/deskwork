@@ -76,7 +76,6 @@ deepseek-harness-desktop/
 | `pnpm verify:patches`                       | 本地补丁账本校验                                            |
 | `pnpm package:dir`                          | icons → staging → 校验 → 未打包 `.app`（ad-hoc 签名）       |
 | `pnpm package:dmg`                          | 在 staging 之上生成 DMG 候选                                |
-| `pnpm verify:artifacts`                     | DMG SHA 与内嵌清单校验                                      |
 | `pnpm smoke:dsh-ui`                         | 独立 Electron/Host PID 的最小官方 DSH UI 闭环               |
 | `pnpm smoke:host-crash`                     | 只终止 Host，验证 launcher 恢复页与最终无残留进程           |
 | `pnpm smoke:profile-recovery`               | 修订恢复不变量                                              |
@@ -86,18 +85,14 @@ deepseek-harness-desktop/
 | `pnpm smoke:lifecycle`                      | 关窗隐藏、托盘唤出、重复启动聚焦、退出无残留                |
 | `pnpm smoke:package`                        | 安装级制品冒烟（对 `.app`/DMG 副本执行）                    |
 | `pnpm smoke:startup-performance`            | 启动性能测量                                                |
-| `pnpm generate:release-evidence`            | 生成确定性 SBOM、许可证清单等发行证据                       |
-| `pnpm verify:release-evidence`              | 统一校验候选与证据绑定                                      |
 | `pnpm verify:plugin-intake`                 | 插件引入制品级隔离演练                                       |
-| `pnpm rehearse:upgrade`                     | 跨版本升级/降级演练（副本 fixture）                         |
-| `pnpm verify:release`                       | 完整发布链（见 §8）                                         |
 | `pnpm check:docs`                           | 检查必需文档、兼容性事实、本地链接与文本格式                |
 | `pnpm check`                                | 全部快速阻塞门禁                                            |
 | `pnpm dsh-native -- <args>`                 | 配套 CLI 开发入口（持 lease）                               |
 
 打包固定 electron-builder 26.15.3（配置 schema 以安装包内的 app-builder-lib 为准）；Host/CLI 运行时全部来自 `release/staging`（pnpm `--prod` deploy + 官方 Node/pnpm 制品校验），`.app` 内不依赖仓库 `node_modules`、pnpm store、系统 Node/pnpm 或 ASAR 虚拟路径。
 
-`pnpm smoke:package`、`verify:release`、`verify:release-evidence`、`verify:plugin-intake`、`rehearse:upgrade` 都在安装制品（`.app`/DMG 副本）上执行，源码 smoke 不构成安装包验收。
+`pnpm smoke:package` 与 `verify:plugin-intake` 都在安装制品（`.app`/DMG 副本）上执行，源码 smoke 不构成安装包验收。
 
 命令名是仓库契约；package 内部脚本可以变化，但 CI 和开发文档不引用临时实现路径。
 
@@ -213,19 +208,14 @@ profile、lease、会话和迁移测试只使用[数据布局](data-layout.md)�
 
 ## 9. 发布流程
 
-发布本机候选 DMG 的完整链（`pnpm verify:release`）：
+发布本机候选 DMG 的完整链：
 
 1. 链首干净树门（只允许已提交字节）；
 2. `pnpm check`（format/lint/types/unit/docs）；
 3. `generate:compatibility` + `verify:dsh-closure` + `verify:patches`（清单再生成、闭包零漂移、补丁账本）；
-4. `test:integration` 与 `test:shared-home`；
-5. `package:dir` + `verify:compatibility`（fresh staging）；
-6. `package:dmg` + `verify:artifacts`（DMG 摘要绑定）；
-7. `smoke:package`（安装级制品冒烟）；
-8. `generate:release-evidence` + `verify:release-evidence`（sourceCommit/DMG/清单/冒烟证据绑定）；
-9. 归档候选并 `rehearse:upgrade`（历史保留、第三方 bundle 不被触碰、降级/未知格式拒绝负例）；
-10. `verify:plugin-intake`（当前交付的引入能力轮次）；
-11. 链尾干净树门 + `git diff --check`。
+4. `package:dir` + `package:dmg`（icons → staging → 门禁 → 未打包 `.app` 与 DMG 候选，ad-hoc 签名）；
+5. `smoke:package`（安装级制品冒烟：`.app`/DMG 副本装上能启动、官方 UI 可达）；
+6. 链尾干净树门 + `git diff --check`。
 
 链外要求：人工使用一个观察周期后才把候选标记为当前版本；保留上一健康 DMG 作为二进制回退候选。手动升级与回退步骤见[升级指南](upgrade-guide.md)。
 

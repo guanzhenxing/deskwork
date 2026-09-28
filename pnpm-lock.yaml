@@ -57,6 +57,9 @@ importers:
 
   apps/desktop-launcher:
     dependencies:
+      '@deskwork/workbench':
+        specifier: workspace:*
+        version: link:../../packages/deskwork-workbench
       '@dsh-desktop/desktop-plugin':
         specifier: workspace:*
         version: link:../../packages/desktop-plugin
