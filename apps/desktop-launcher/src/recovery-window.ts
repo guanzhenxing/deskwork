@@ -3,8 +3,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { BrowserWindow, ipcMain } from 'electron'
 
-import { PRODUCT } from '@dsh-desktop/product-config'
-import type { RecoveryView } from '@dsh-desktop/shell-core'
+import { PRODUCT } from '@deskwork/product-config'
+import type { RecoveryView } from '@deskwork/shell-core'
 
 import { RECOVERY_DOCUMENT_PATH, toIpcView, validateRecoveryIpc } from './recovery-ipc.js'
 

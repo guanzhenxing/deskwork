@@ -1,5 +1,5 @@
 {
-  "name": "@dsh-desktop/release-compatibility",
+  "name": "@deskwork/release-compatibility",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -14,6 +14,6 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@dsh-desktop/home-lease": "workspace:*"
+    "@deskwork/home-lease": "workspace:*"
   }
 }

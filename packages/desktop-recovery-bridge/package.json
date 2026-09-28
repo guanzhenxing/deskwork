@@ -1,5 +1,5 @@
 {
-  "name": "@dsh-desktop/desktop-recovery-bridge",
+  "name": "@deskwork/desktop-recovery-bridge",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -19,7 +19,7 @@
     "@deepseek-ai/cordis": "4.0.4",
     "@deepseek-ai/dsh-client-connection": "0.2.0-rc.1",
     "@deepseek-ai/dsh-host-webserver": "0.2.0-rc.1",
-    "@dsh-desktop/desktop-contracts": "workspace:*"
+    "@deskwork/desktop-contracts": "workspace:*"
   },
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

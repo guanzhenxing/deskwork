@@ -6,8 +6,8 @@ import type {
   HostBootstrap,
   HostProcessFactory,
   ManagedHostProcess,
-} from '@dsh-desktop/host-supervisor'
-import { assertBootProfile } from '@dsh-desktop/host-supervisor/boot-profile'
+} from '@deskwork/host-supervisor'
+import { assertBootProfile } from '@deskwork/host-supervisor/boot-profile'
 
 import { sanitizeHostEnvironment } from './host-environment.js'
 

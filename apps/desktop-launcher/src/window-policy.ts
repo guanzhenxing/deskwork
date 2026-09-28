@@ -1,6 +1,6 @@
 import type { HandlerDetails } from 'electron'
 
-import { PRODUCT } from '@dsh-desktop/product-config'
+import { PRODUCT } from '@deskwork/product-config'
 
 import type { OpenExternalAdapter } from './external-links.js'
 

@@ -137,7 +137,7 @@ MOVO **不 spawn CLI**，而是把 DSH 作为 npm 库进程内组装：
 
 | plan-v2 步 | 注入内容（源自 MOVO 实证） |
 | --- | --- |
-| 7b 包名收尾（未做） | MOVO 的 askai/gragentic 代号残留是"改名拖延成本"的活教材——环境变量、库名、路径遍布 14 万行代码。**建议提级：在 Segment 4 新包数量增长前完成 7b**，每多一个 `@dsh-desktop/*` 新包，改名成本加一分 |
+| 7b 包名收尾（未做） | MOVO 的 askai/gragentic 代号残留是"改名拖延成本"的活教材——环境变量、库名、路径遍布 14 万行代码。**建议提级：在 Segment 4 新包数量增长前完成 7b**，每多一个 `@deskwork/*` 新包，改名成本加一分 |
 | 8 identity-local | 审计事件 schema 一步定型为五元组：主体/时间/对象/动作/结果，分类取 MOVO 四类审计的本地子集（管理操作、Agent 活动、权限拒绝——本地无"历史事件"归档需求）；principal 字段为"单 Host 多客户端"远景预留；access 服务同步定义资源动作清单与 `read/write/dangerous` 三级风险标记（connectors 步 14 消费） |
 | 9 library | 引用锚点结构借鉴 `KnowledgeCitation`：文档 + 页码 + 标题路径，配合既定的 pinned revision 形成"历史任务不漂移且可回溯到原文位置"；修订/引用 schema 先写契约测试再动 UI；分块参数（750 token、重叠 80、标题路径前缀）记录为将来嵌入检索的默认参考，现在不实现；**吸取 MOVO 教训：权限过滤必须在查询期收敛（语料分域），不做取回后过滤** |
 | 10 skills | 本步是 MOVO 借鉴密度最高处：① 采用"结构化定义 → 编译为 DSH 自适应 Skill"路线，**绝不引入固定图执行引擎**（MOVO 明确把"这不是固定执行计划"写进编译产物）；② 定义模型参考 `kind: ordinary/workflow` + 独立写作规范类型 + 命名规则与内容上限；③ 编译期能力引用校验 fail-closed（未授权工具直接拒绝，不留到运行时）；④ 编译产物不可变版本化 + 审计 + 回滚，复用 profile-manager 修订事务的思想建版本链，"旧发布可为新引擎重编译而不变异"（plan-v2 步 11 验收）天然成立；⑤ ZIP 安装走"物化 + 包内资源只读工具"模式，格式对齐 SkillHub/dsh-market 生态；⑥ 单个坏 skill 隔离告警，不拖垮整体加载 |

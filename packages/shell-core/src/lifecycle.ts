@@ -1,4 +1,4 @@
-import type { HostReady } from '@dsh-desktop/host-supervisor'
+import type { HostReady } from '@deskwork/host-supervisor'
 
 /** One bounded Host run; retries must create a fresh attempt, not restart one. */
 export interface HostAttempt {

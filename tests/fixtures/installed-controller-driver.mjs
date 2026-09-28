@@ -15,13 +15,13 @@ if (!installRoot || !scenario || !home) {
 
 const hostRoot = path.join(installRoot, 'runtime-host')
 const shellCore = await import(
-  path.join(hostRoot, 'node_modules', '@dsh-desktop', 'shell-core', 'lib', 'index.js')
+  path.join(hostRoot, 'node_modules', '@deskwork', 'shell-core', 'lib', 'index.js')
 )
 const homeLease = await import(
-  path.join(hostRoot, 'node_modules', '@dsh-desktop', 'home-lease', 'lib', 'index.js')
+  path.join(hostRoot, 'node_modules', '@deskwork', 'home-lease', 'lib', 'index.js')
 )
 const releaseCompatibility = await import(
-  path.join(hostRoot, 'node_modules', '@dsh-desktop', 'release-compatibility', 'lib', 'index.js')
+  path.join(hostRoot, 'node_modules', '@deskwork', 'release-compatibility', 'lib', 'index.js')
 )
 
 const { RecoverySessionController, StartupFailureError, createDesktopProfileRecovery } = shellCore

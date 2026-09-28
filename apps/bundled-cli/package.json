@@ -1,5 +1,5 @@
 {
-  "name": "@dsh-desktop/bundled-cli",
+  "name": "@deskwork/bundled-cli",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,8 +15,8 @@
   },
   "dependencies": {
     "@deepseek-ai/dsh": "0.2.0-rc.1",
-    "@dsh-desktop/home-lease": "workspace:*",
-    "@dsh-desktop/product-config": "workspace:*",
-    "@dsh-desktop/release-compatibility": "workspace:*"
+    "@deskwork/home-lease": "workspace:*",
+    "@deskwork/product-config": "workspace:*",
+    "@deskwork/release-compatibility": "workspace:*"
   }
 }

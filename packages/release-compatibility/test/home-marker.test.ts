@@ -4,7 +4,7 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import type { HomeLease } from '@dsh-desktop/home-lease'
+import type { HomeLease } from '@deskwork/home-lease'
 
 import { HomeAdmissionError, markerPath } from '../src/home-admission.js'
 import { runHomeCompatibilityChain } from '../src/home-marker.js'

@@ -1,10 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import type { HomeLease, ProcessIdentity, ProcessProbe } from '@dsh-desktop/home-lease'
-import {
-  createEnvelopeWriter,
-  type HostEnvelope,
-} from '@dsh-desktop/desktop-contracts/host-control'
+import type { HomeLease, ProcessIdentity, ProcessProbe } from '@deskwork/home-lease'
+import { createEnvelopeWriter, type HostEnvelope } from '@deskwork/desktop-contracts/host-control'
 
 import { HostSupervisor, type HostBootstrap, type ManagedHostProcess } from '../src/supervisor.js'
 
@@ -153,7 +150,7 @@ function fixture(options: { stabilityMs?: number | null; startupTimeoutMs?: numb
 function startRequest(lease: RecordingLease) {
   return {
     home: '/tmp/isolated-home',
-    profileName: 'desktop',
+    profileName: 'deskwork',
     mode: 'normal' as const,
     lease,
     probe: fakeProbe,
@@ -189,8 +186,8 @@ describe('HostSupervisor lease ordering', () => {
     const setup = fixture()
     await startAndHello(setup)
     const order = [setup.lease.calls[0], setup.events[0], setup.lease.calls[1], 'bootstrap']
-    expect(setup.lease.calls).toEqual(['beforeSpawn:desktop', 'attachHost:4321'])
-    expect(order).toEqual(['beforeSpawn:desktop', 'spawn-waiting', 'attachHost:4321', 'bootstrap'])
+    expect(setup.lease.calls).toEqual(['beforeSpawn:deskwork', 'attachHost:4321'])
+    expect(order).toEqual(['beforeSpawn:deskwork', 'spawn-waiting', 'attachHost:4321', 'bootstrap'])
     expect(setup.process.bootstrap?.leaseGeneration).toBe('lease-generation-1')
   })
 
@@ -525,7 +522,7 @@ describe('HostSupervisor lease watchdog', () => {
       })
       const started = supervisor.start({
         home: '/tmp/isolated-home',
-        profileName: 'desktop',
+        profileName: 'deskwork',
         mode: 'normal',
         lease,
         probe: fakeProbe,
@@ -592,7 +589,7 @@ describe('HostSupervisor lease watchdog', () => {
       })
       const started = supervisor.start({
         home: '/tmp/isolated-home',
-        profileName: 'desktop',
+        profileName: 'deskwork',
         mode: 'normal',
         lease,
         probe: fakeProbe,
@@ -634,7 +631,7 @@ describe('HostSupervisor lease watchdog', () => {
       })
       const started = supervisor.start({
         home: '/tmp/isolated-home',
-        profileName: 'desktop',
+        profileName: 'deskwork',
         mode: 'normal',
         lease,
         probe: fakeProbe,

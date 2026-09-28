@@ -17,7 +17,7 @@ export const PRODUCT = Object.freeze({
   // Same value as `name`; kept as the explicit display identity for UI
   // labels so a future split (if ever needed) has one place to change.
   displayName: 'Deskwork',
-  appId: 'local.dsh.harness.desktop',
+  appId: 'local.deskwork.app',
   binName: 'dsh-desktop',
   cliName: 'dsh-native',
   defaultProfileName: 'deskwork',

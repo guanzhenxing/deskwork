@@ -3,7 +3,7 @@ import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 
 import { createRecoverySurfacePublisher } from './runtime.js'
-import type { DesktopSurfaceService } from '@dsh-desktop/desktop-contracts/host-control'
+import type { DesktopSurfaceService } from '@deskwork/desktop-contracts/host-control'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {

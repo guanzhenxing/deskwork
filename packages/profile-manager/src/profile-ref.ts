@@ -3,7 +3,7 @@ import path from 'node:path'
 import {
   isReservedProfileName,
   RESERVED_PROFILE_NAME_PREFIX,
-} from '@dsh-desktop/desktop-contracts/profile-name'
+} from '@deskwork/desktop-contracts/profile-name'
 
 export { RESERVED_PROFILE_NAME_PREFIX }
 

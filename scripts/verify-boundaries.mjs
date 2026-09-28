@@ -43,7 +43,7 @@ export async function findBoundaryViolations(root) {
           specifier,
         })
       }
-      if (specifier === '@dsh-desktop/desktop-contracts') {
+      if (specifier === '@deskwork/desktop-contracts') {
         violations.push({
           file: relativeFile,
           rule: 'contracts-capability-subpath',
@@ -52,7 +52,7 @@ export async function findBoundaryViolations(root) {
       }
       if (
         relativeFile.startsWith(path.join('packages', 'host-supervisor', 'src') + path.sep) &&
-        specifier.startsWith('@dsh-desktop/desktop-plugin')
+        specifier.startsWith('@deskwork/desktop-plugin')
       ) {
         violations.push({ file: relativeFile, rule: 'mechanism-no-product-plugin', specifier })
       }

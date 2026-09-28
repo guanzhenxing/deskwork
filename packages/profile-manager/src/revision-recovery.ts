@@ -1,4 +1,4 @@
-import type { HomeLease } from '@dsh-desktop/home-lease'
+import type { HomeLease } from '@deskwork/home-lease'
 import path from 'node:path'
 
 import type { ProfileRef } from './profile-ref.js'

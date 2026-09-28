@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import type { HomeLease } from '@dsh-desktop/home-lease'
+import type { HomeLease } from '@deskwork/home-lease'
 
 import {
   HomeAdmissionError,

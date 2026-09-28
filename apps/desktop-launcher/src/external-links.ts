@@ -1,4 +1,4 @@
-import { isAllowedMainFrameNavigation, isLoopbackHost } from '@dsh-desktop/shell-core'
+import { isAllowedMainFrameNavigation, isLoopbackHost } from '@deskwork/shell-core'
 
 /**
  * The single decision point for user-driven links leaving the app: only

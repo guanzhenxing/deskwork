@@ -1,5 +1,5 @@
 {
-  "name": "@dsh-desktop/home-lease",
+  "name": "@deskwork/home-lease",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@deepseek-ai/dsh-atomic-write": "0.2.0-rc.1",
-    "@dsh-desktop/desktop-contracts": "workspace:*"
+    "@deskwork/desktop-contracts": "workspace:*"
   },
   "devDependencies": {}
 }

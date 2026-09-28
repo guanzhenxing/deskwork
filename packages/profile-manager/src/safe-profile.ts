@@ -1,7 +1,7 @@
 import { lstat, mkdir, readFile, readdir } from 'node:fs/promises'
 import path from 'node:path'
 
-import type { HomeLease } from '@dsh-desktop/home-lease'
+import type { HomeLease } from '@deskwork/home-lease'
 
 import type { ProfileRef } from './profile-ref.js'
 import { assertRealDirectory, writeAtomicDurable } from './durable-fs.js'
@@ -11,7 +11,7 @@ export const SAFE_PROFILE_NAME = 'desktop-safe-mode'
 export const SAFE_BUNDLE_PREFIX = [
   '@deepseek-ai/dsh-base',
   '@deepseek-ai/dsh-web-app',
-  '@dsh-desktop/desktop-recovery-bridge',
+  '@deskwork/desktop-recovery-bridge',
 ] as const
 
 /**

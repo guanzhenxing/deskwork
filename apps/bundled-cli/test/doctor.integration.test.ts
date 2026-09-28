@@ -6,7 +6,7 @@ import { Writable } from 'node:stream'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { createNativeProcessProbe, defaultLeaseHelperPath } from '@dsh-desktop/home-lease'
+import { createNativeProcessProbe, defaultLeaseHelperPath } from '@deskwork/home-lease'
 
 import { runBundledCli } from '../src/main.js'
 import {

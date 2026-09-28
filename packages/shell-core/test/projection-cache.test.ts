@@ -8,7 +8,7 @@ import {
   createInProcessGuardLock,
   type HomeLease,
   type ProcessProbe,
-} from '@dsh-desktop/home-lease'
+} from '@deskwork/home-lease'
 
 import { quarantineProjectionCache } from '../src/projection-cache.js'
 import {

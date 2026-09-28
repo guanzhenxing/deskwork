@@ -45,42 +45,42 @@ importers:
       '@deepseek-ai/dsh':
         specifier: 0.2.0-rc.1
         version: 0.2.0-rc.1(ae11ff807818e8ecba252cfc9a10cec0)
-      '@dsh-desktop/home-lease':
+      '@deskwork/home-lease':
         specifier: workspace:*
         version: link:../../packages/home-lease
-      '@dsh-desktop/product-config':
+      '@deskwork/product-config':
         specifier: workspace:*
         version: link:../../packages/product-config
-      '@dsh-desktop/release-compatibility':
+      '@deskwork/release-compatibility':
         specifier: workspace:*
         version: link:../../packages/release-compatibility
 
   apps/desktop-launcher:
     dependencies:
+      '@deskwork/desktop-plugin':
+        specifier: workspace:*
+        version: link:../../packages/desktop-plugin
+      '@deskwork/home-lease':
+        specifier: workspace:*
+        version: link:../../packages/home-lease
+      '@deskwork/host-supervisor':
+        specifier: workspace:*
+        version: link:../../packages/host-supervisor
+      '@deskwork/product-config':
+        specifier: workspace:*
+        version: link:../../packages/product-config
+      '@deskwork/profile-manager':
+        specifier: workspace:*
+        version: link:../../packages/profile-manager
+      '@deskwork/release-compatibility':
+        specifier: workspace:*
+        version: link:../../packages/release-compatibility
+      '@deskwork/shell-core':
+        specifier: workspace:*
+        version: link:../../packages/shell-core
       '@deskwork/workbench':
         specifier: workspace:*
         version: link:../../packages/deskwork-workbench
-      '@dsh-desktop/desktop-plugin':
-        specifier: workspace:*
-        version: link:../../packages/desktop-plugin
-      '@dsh-desktop/home-lease':
-        specifier: workspace:*
-        version: link:../../packages/home-lease
-      '@dsh-desktop/host-supervisor':
-        specifier: workspace:*
-        version: link:../../packages/host-supervisor
-      '@dsh-desktop/product-config':
-        specifier: workspace:*
-        version: link:../../packages/product-config
-      '@dsh-desktop/profile-manager':
-        specifier: workspace:*
-        version: link:../../packages/profile-manager
-      '@dsh-desktop/release-compatibility':
-        specifier: workspace:*
-        version: link:../../packages/release-compatibility
-      '@dsh-desktop/shell-core':
-        specifier: workspace:*
-        version: link:../../packages/shell-core
     devDependencies:
       electron:
         specifier: 44.0.0
@@ -103,7 +103,7 @@ importers:
       '@deepseek-ai/dsh-host-webserver':
         specifier: 0.2.0-rc.1
         version: 0.2.0-rc.1(@deepseek-ai/cordis@4.0.4)
-      '@dsh-desktop/desktop-contracts':
+      '@deskwork/desktop-contracts':
         specifier: workspace:*
         version: link:../desktop-contracts
 
@@ -118,7 +118,7 @@ importers:
       '@deepseek-ai/dsh-host-webserver':
         specifier: 0.2.0-rc.1
         version: 0.2.0-rc.1(@deepseek-ai/cordis@4.0.4)
-      '@dsh-desktop/desktop-contracts':
+      '@deskwork/desktop-contracts':
         specifier: workspace:*
         version: link:../desktop-contracts
 
@@ -129,7 +129,7 @@ importers:
       '@deepseek-ai/dsh-atomic-write':
         specifier: 0.2.0-rc.1
         version: 0.2.0-rc.1(@deepseek-ai/cordis@4.0.4)
-      '@dsh-desktop/desktop-contracts':
+      '@deskwork/desktop-contracts':
         specifier: workspace:*
         version: link:../desktop-contracts
 
@@ -165,14 +165,14 @@ importers:
       '@deepseek-ai/dsh-web-app':
         specifier: 0.2.0-rc.1
         version: 0.2.0-rc.1(3cdd41bb31cff41b55571dbfad97ffdd)
-      '@dsh-desktop/desktop-contracts':
+      '@deskwork/desktop-contracts':
         specifier: workspace:*
         version: link:../desktop-contracts
-      '@dsh-desktop/home-lease':
+      '@deskwork/home-lease':
         specifier: workspace:*
         version: link:../home-lease
     devDependencies:
-      '@dsh-desktop/profile-manager':
+      '@deskwork/profile-manager':
         specifier: workspace:*
         version: link:../profile-manager
 
@@ -180,34 +180,34 @@ importers:
 
   packages/profile-manager:
     dependencies:
-      '@dsh-desktop/desktop-contracts':
+      '@deskwork/desktop-contracts':
         specifier: workspace:*
         version: link:../desktop-contracts
-      '@dsh-desktop/home-lease':
+      '@deskwork/home-lease':
         specifier: workspace:*
         version: link:../home-lease
-      '@dsh-desktop/product-config':
+      '@deskwork/product-config':
         specifier: workspace:*
         version: link:../product-config
 
   packages/release-compatibility:
     dependencies:
-      '@dsh-desktop/home-lease':
+      '@deskwork/home-lease':
         specifier: workspace:*
         version: link:../home-lease
 
   packages/shell-core:
     dependencies:
-      '@dsh-desktop/desktop-contracts':
+      '@deskwork/desktop-contracts':
         specifier: workspace:*
         version: link:../desktop-contracts
-      '@dsh-desktop/home-lease':
+      '@deskwork/home-lease':
         specifier: workspace:*
         version: link:../home-lease
-      '@dsh-desktop/host-supervisor':
+      '@deskwork/host-supervisor':
         specifier: workspace:*
         version: link:../host-supervisor
-      '@dsh-desktop/profile-manager':
+      '@deskwork/profile-manager':
         specifier: workspace:*
         version: link:../profile-manager
 

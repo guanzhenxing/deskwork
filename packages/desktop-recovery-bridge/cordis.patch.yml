@@ -9,4 +9,4 @@
 
 - insert:
     - id: desktop-recovery-bridge
-      name: '@dsh-desktop/desktop-recovery-bridge'
+      name: '@deskwork/desktop-recovery-bridge'

@@ -437,14 +437,14 @@ async function stageAll(arch) {
   await mkdir(downloads, { recursive: true })
 
   console.log('stage-runtime: deploying host closure')
-  await deployPackage('@dsh-desktop/desktop-launcher', path.join(staging, 'runtime-host'))
+  await deployPackage('@deskwork/desktop-launcher', path.join(staging, 'runtime-host'))
   await pruneDevelopmentArtifacts(path.join(staging, 'runtime-host'))
   // The recovery bridge must live in the installed Host closure for real
   // Safe Mode boots, but declaring it as a host-supervisor dependency would
   // make it resolvable in the development tree too — the safe-mode smoke's
   // bare-home refusal proof depends on it NOT being resolvable there. So it
   // is materialized into the staged closure only; its own dependency
-  // (@dsh-desktop/desktop-contracts, plus the deepseek runtime) is already
+  // (@deskwork/desktop-contracts, plus the deepseek runtime) is already
   // part of the deployed graph. Copied with the compiled lib + package
   // manifest, exactly like an injected workspace package would be.
   const bridgeSource = path.join(root, 'packages', 'desktop-recovery-bridge')
@@ -452,7 +452,7 @@ async function stageAll(arch) {
     staging,
     'runtime-host',
     'node_modules',
-    '@dsh-desktop',
+    '@deskwork',
     'desktop-recovery-bridge',
   )
   await mkdir(path.dirname(bridgeTarget), { recursive: true })
@@ -462,7 +462,7 @@ async function stageAll(arch) {
     })
   }
   console.log('stage-runtime: deploying cli closure')
-  await deployPackage('@dsh-desktop/bundled-cli', path.join(staging, 'runtime-cli'))
+  await deployPackage('@deskwork/bundled-cli', path.join(staging, 'runtime-cli'))
   await pruneDevelopmentArtifacts(path.join(staging, 'runtime-cli'))
 
   console.log(`stage-runtime: staging official Node v${NODE_BASELINE} (${arch})`)

@@ -74,7 +74,7 @@ function consumeLines(stream, onLine) {
 }
 
 export async function runLauncherSmoke(mode) {
-  await runCommand('pnpm', ['--filter', '@dsh-desktop/desktop-launcher', 'build'], {
+  await runCommand('pnpm', ['--filter', '@deskwork/desktop-launcher', 'build'], {
     cwd: root,
     env: process.env,
   })

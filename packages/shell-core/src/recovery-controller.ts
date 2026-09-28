@@ -1,5 +1,5 @@
-import { LeaseError, type HomeLease } from '@dsh-desktop/home-lease'
-import type { HostReady } from '@dsh-desktop/host-supervisor'
+import { LeaseError, type HomeLease } from '@deskwork/home-lease'
+import type { HostReady } from '@deskwork/host-supervisor'
 
 import { shouldRollbackProfile, toStartupFailure, type StartupFailure } from './failure-policy.js'
 import type { HostAttempt } from './lifecycle.js'

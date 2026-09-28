@@ -43,23 +43,23 @@ test('floating specifiers in workspace manifests are refused, exact pins pass', 
   const manifests = [
     {
       file: 'apps/bundled-cli/package.json',
-      name: '@dsh-desktop/bundled-cli',
+      name: '@deskwork/bundled-cli',
       dependencies: {
         '@deepseek-ai/dsh': '0.1.2-alpha.3',
       },
     },
     {
       file: 'packages/host-supervisor/package.json',
-      name: '@dsh-desktop/host-supervisor',
+      name: '@deskwork/host-supervisor',
       dependencies: {
         '@deepseek-ai/dsh': '^0.1.2-alpha.3',
       },
     },
     {
       file: 'packages/shell-core/package.json',
-      name: '@dsh-desktop/shell-core',
+      name: '@deskwork/shell-core',
       dependencies: {
-        '@dsh-desktop/host-supervisor': 'workspace:*',
+        '@deskwork/host-supervisor': 'workspace:*',
       },
     },
   ]
@@ -67,7 +67,7 @@ test('floating specifiers in workspace manifests are refused, exact pins pass', 
   assert.deepEqual(floating, [
     {
       file: 'packages/host-supervisor/package.json',
-      name: '@dsh-desktop/host-supervisor',
+      name: '@deskwork/host-supervisor',
       dependency: '@deepseek-ai/dsh',
       specifier: '^0.1.2-alpha.3',
     },

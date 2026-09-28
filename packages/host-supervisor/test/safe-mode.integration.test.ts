@@ -9,14 +9,11 @@ import {
   acquireHomeLease,
   createNativeProcessProbe,
   defaultLeaseHelperPath,
-} from '@dsh-desktop/home-lease'
+} from '@deskwork/home-lease'
 
-import { createProfileRef } from '@dsh-desktop/profile-manager'
-import { prepareSafeProfile, SAFE_PROFILE_NAME } from '@dsh-desktop/profile-manager'
-import {
-  createEnvelopeWriter,
-  parseHostEnvelope,
-} from '@dsh-desktop/desktop-contracts/host-control'
+import { createProfileRef } from '@deskwork/profile-manager'
+import { prepareSafeProfile, SAFE_PROFILE_NAME } from '@deskwork/profile-manager'
+import { createEnvelopeWriter, parseHostEnvelope } from '@deskwork/desktop-contracts/host-control'
 import { runDshHost, type HostControlTransport } from '../src/host-runner.js'
 import {
   createIsolatedHomeFixture,
@@ -61,7 +58,7 @@ describe.skipIf(!helperAvailable)('safe mode boot', () => {
     // Project our workspace recovery bridge into the safe profile so the
     // pinned bundle resolver finds it (same mechanism as the local-bundle test).
     const bridgeRoot = fileURLToPath(new URL('../../desktop-recovery-bridge', import.meta.url))
-    const bridgeLink = path.join(ref.dir, 'node_modules', '@dsh-desktop', 'desktop-recovery-bridge')
+    const bridgeLink = path.join(ref.dir, 'node_modules', '@deskwork', 'desktop-recovery-bridge')
     await mkdir(path.dirname(bridgeLink), { recursive: true })
     await symlink(bridgeRoot, bridgeLink, 'dir')
 
@@ -103,7 +100,7 @@ describe.skipIf(!helperAvailable)('safe mode boot', () => {
 
   it('keeps a corrupted normal profile untouched by safe mode', async () => {
     const { fixture, lease } = await leasedHome()
-    const normalDir = path.join(fixture.home, 'profiles', 'desktop')
+    const normalDir = path.join(fixture.home, 'profiles', 'deskwork')
     await mkdir(normalDir, { recursive: true, mode: 0o700 })
     await writeFile(path.join(normalDir, 'package.json'), '{corrupt', 'utf8')
     const ref = createProfileRef(fixture.home, SAFE_PROFILE_NAME)
@@ -157,7 +154,7 @@ describe.skipIf(!helperAvailable)('safe mode boot', () => {
               bundles: [
                 '@deepseek-ai/dsh-base',
                 '@deepseek-ai/dsh-web-app',
-                '@dsh-desktop/desktop-recovery-bridge',
+                '@deskwork/desktop-recovery-bridge',
               ],
               patchReload: 'startup',
             },
@@ -177,7 +174,7 @@ describe.skipIf(!helperAvailable)('safe mode boot', () => {
     const anchor = path.join(fixture.userData, 'anchor.json')
     await copyFile(fileURLToPath(new URL('../package.json', import.meta.url)), anchor)
     const bridgeRoot = fileURLToPath(new URL('../../desktop-recovery-bridge', import.meta.url))
-    const bridgeLink = path.join(ref.dir, 'node_modules', '@dsh-desktop', 'desktop-recovery-bridge')
+    const bridgeLink = path.join(ref.dir, 'node_modules', '@deskwork', 'desktop-recovery-bridge')
     await mkdir(path.dirname(bridgeLink), { recursive: true })
     await symlink(bridgeRoot, bridgeLink, 'dir')
 

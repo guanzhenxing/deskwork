@@ -1,5 +1,5 @@
 {
-  "name": "@dsh-desktop/desktop-launcher",
+  "name": "@deskwork/desktop-launcher",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,13 +11,13 @@
   },
   "dependencies": {
     "@deskwork/workbench": "workspace:*",
-    "@dsh-desktop/desktop-plugin": "workspace:*",
-    "@dsh-desktop/home-lease": "workspace:*",
-    "@dsh-desktop/host-supervisor": "workspace:*",
-    "@dsh-desktop/product-config": "workspace:*",
-    "@dsh-desktop/profile-manager": "workspace:*",
-    "@dsh-desktop/release-compatibility": "workspace:*",
-    "@dsh-desktop/shell-core": "workspace:*"
+    "@deskwork/desktop-plugin": "workspace:*",
+    "@deskwork/home-lease": "workspace:*",
+    "@deskwork/host-supervisor": "workspace:*",
+    "@deskwork/product-config": "workspace:*",
+    "@deskwork/profile-manager": "workspace:*",
+    "@deskwork/release-compatibility": "workspace:*",
+    "@deskwork/shell-core": "workspace:*"
   },
   "devDependencies": {
     "electron": "44.0.0"

@@ -101,7 +101,6 @@ corepack pnpm@11.7.0 smoke:package    # 安装级制品冒烟
 
 已知限制：
 
-
 ## 文档
 
 - [架构](docs/architecture.md)：组件、进程、信任边界和依赖方向；

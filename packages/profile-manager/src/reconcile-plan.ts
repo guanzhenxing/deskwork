@@ -2,10 +2,10 @@ import { createHash } from 'node:crypto'
 import { lstat, readFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import { PRODUCT } from '@dsh-desktop/product-config'
+import { PRODUCT } from '@deskwork/product-config'
 
 import { isHomeLease, type ProfileWriteAuthority } from './reconcile.js'
-import type { HomeLease } from '@dsh-desktop/home-lease'
+import type { HomeLease } from '@deskwork/home-lease'
 import type { ProfileRef } from './profile-ref.js'
 
 import {

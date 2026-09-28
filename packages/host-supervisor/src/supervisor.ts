@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 
-import type { HomeLease, ProcessProbe } from '@dsh-desktop/home-lease'
+import type { HomeLease, ProcessProbe } from '@deskwork/home-lease'
 
 import {
   HostControlError,
@@ -9,7 +9,7 @@ import {
   type HostToLauncherMessage,
   type LauncherToHostMessage,
   type LoopbackSurface,
-} from '@dsh-desktop/desktop-contracts/host-control'
+} from '@deskwork/desktop-contracts/host-control'
 
 /** Short discriminating digest of a home path, for error messages only. */
 function homeDigest(home: string): string {

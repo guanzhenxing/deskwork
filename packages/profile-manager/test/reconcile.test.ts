@@ -3,11 +3,7 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import {
-  acquireHomeLease,
-  createInProcessGuardLock,
-  type ProcessProbe,
-} from '@dsh-desktop/home-lease'
+import { acquireHomeLease, createInProcessGuardLock, type ProcessProbe } from '@deskwork/home-lease'
 
 import {
   createIsolatedHomeFixture,
@@ -169,7 +165,7 @@ describe('reconcileDesktopProfile', () => {
                 'third-a',
                 '@deepseek-ai/dsh-web-app',
                 'third-b',
-                '@dsh-desktop/desktop-plugin',
+                '@deskwork/desktop-plugin',
                 '@deepseek-ai/dsh-base',
                 '@deepseek-ai/dsh-base',
               ],

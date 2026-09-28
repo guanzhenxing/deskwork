@@ -20,11 +20,11 @@ import {
   LeaseError,
   resolveDesktopHome,
   resolveLeaseHelperPath,
-} from '@dsh-desktop/home-lease'
-import { HostSupervisor, type HostFatalDetail, type HostReady } from '@dsh-desktop/host-supervisor'
-import { PRODUCT } from '@dsh-desktop/product-config'
-import { SAFE_PROFILE_NAME } from '@dsh-desktop/profile-manager'
-import { loadReleaseManifest, runHomeCompatibilityChain } from '@dsh-desktop/release-compatibility'
+} from '@deskwork/home-lease'
+import { HostSupervisor, type HostFatalDetail, type HostReady } from '@deskwork/host-supervisor'
+import { PRODUCT } from '@deskwork/product-config'
+import { SAFE_PROFILE_NAME } from '@deskwork/profile-manager'
+import { loadReleaseManifest, runHomeCompatibilityChain } from '@deskwork/release-compatibility'
 
 import { createStartupTimeline } from './startup-timeline.js'
 import {
@@ -43,7 +43,7 @@ import {
   writeWindowState,
   type SavedWindowState,
   type StartupFailure,
-} from '@dsh-desktop/shell-core'
+} from '@deskwork/shell-core'
 
 import { createElectronHostProcessFactory } from './electron-host-process.js'
 import {

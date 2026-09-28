@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import type { HomeLease } from '@dsh-desktop/home-lease'
-import type { HostReady } from '@dsh-desktop/host-supervisor'
+import type { HomeLease } from '@deskwork/home-lease'
+import type { HostReady } from '@deskwork/host-supervisor'
 
 import { StartupFailureError } from '../src/recovery-controller.js'
 import { RecoverySessionController } from '../src/recovery-controller.js'

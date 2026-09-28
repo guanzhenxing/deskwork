@@ -8,7 +8,7 @@ import {
   createInProcessGuardLock,
   type HomeLease,
   type ProcessProbe,
-} from '@dsh-desktop/home-lease'
+} from '@deskwork/home-lease'
 
 import { createProfileRef } from '../src/index.js'
 import { SAFE_BUNDLE_PREFIX, SAFE_PROFILE_NAME, prepareSafeProfile } from '../src/safe-profile.js'

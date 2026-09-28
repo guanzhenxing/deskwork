@@ -3,7 +3,7 @@ import {
   unlockHome,
   type GuardLock,
   type ProcessProbe,
-} from '@dsh-desktop/home-lease'
+} from '@deskwork/home-lease'
 
 import {
   resolveCliRuntime,

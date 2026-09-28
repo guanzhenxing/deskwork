@@ -1,7 +1,7 @@
 export const DESKTOP_BUNDLE_PREFIX = [
   '@deepseek-ai/dsh-base',
   '@deepseek-ai/dsh-web-app',
-  '@dsh-desktop/desktop-plugin',
+  '@deskwork/desktop-plugin',
   '@deskwork/workbench',
 ] as const
 

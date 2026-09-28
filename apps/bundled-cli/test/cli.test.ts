@@ -6,11 +6,7 @@ import { Writable } from 'node:stream'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import {
-  acquireHomeLease,
-  createInProcessGuardLock,
-  type ProcessProbe,
-} from '@dsh-desktop/home-lease'
+import { acquireHomeLease, createInProcessGuardLock, type ProcessProbe } from '@deskwork/home-lease'
 
 import {
   planCliInvocation,

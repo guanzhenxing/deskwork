@@ -11,9 +11,9 @@ import {
   type GuardLock,
   type HomeLease,
   type ProcessProbe,
-} from '@dsh-desktop/home-lease'
-import { PRODUCT } from '@dsh-desktop/product-config'
-import { loadReleaseManifest, runHomeCompatibilityChain } from '@dsh-desktop/release-compatibility'
+} from '@deskwork/home-lease'
+import { PRODUCT } from '@deskwork/product-config'
+import { loadReleaseManifest, runHomeCompatibilityChain } from '@deskwork/release-compatibility'
 
 import { runDoctorUnlock } from './doctor.js'
 import { releaseManifestInput, resolveCliRuntime, type CliRuntimePaths } from './runtime-paths.js'

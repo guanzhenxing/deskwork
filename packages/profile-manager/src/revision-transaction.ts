@@ -3,7 +3,7 @@ import { lstat, mkdir, open, readFile, rm, stat, unlink } from 'node:fs/promises
 import type { Stats } from 'node:fs'
 import path from 'node:path'
 
-import type { HomeLease } from '@dsh-desktop/home-lease'
+import type { HomeLease } from '@deskwork/home-lease'
 
 import type { ProfileRef } from './profile-ref.js'
 import { sha256Of } from './reconcile-plan.js'

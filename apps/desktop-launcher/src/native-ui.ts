@@ -1,4 +1,4 @@
-import { PRODUCT } from '@dsh-desktop/product-config'
+import { PRODUCT } from '@deskwork/product-config'
 
 export type NativeUiAction = 'show' | 'quit'
 

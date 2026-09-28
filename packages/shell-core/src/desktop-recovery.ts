@@ -10,7 +10,7 @@ import {
   retainProfileTransaction,
   rollbackProfileTransaction,
   SAFE_PROFILE_NAME,
-} from '@dsh-desktop/profile-manager'
+} from '@deskwork/profile-manager'
 
 import {
   StartupFailureError,

@@ -3,7 +3,7 @@ import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { resolveLeaseHelperPath } from '@dsh-desktop/home-lease'
+import { resolveLeaseHelperPath } from '@deskwork/home-lease'
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 

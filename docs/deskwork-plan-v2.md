@@ -41,7 +41,7 @@
 ### 暂不动（一行不碰，等承诺明确再处理）
 
 - 其余一切"可删"的东西（不参与运行）；
-- **包名前缀 `@dsh-desktop/*` 与根包名 `deepseek-harness-desktop`、`appId`**：全仓机械改名，已排入 7b（第三段），在那之前不动，绝不混入步 1；
+- **包名前缀 `@deskwork/*` 与根包名 `deepseek-harness-desktop`、`appId`**：全仓机械改名，已排入 7b（第三段），在那之前不动，绝不混入步 1；
 - `defaultProfileName: 'desktop'`：等第二段组装产品 Profile 时再定（蓝图定的 Profile 名 `deskwork` 届时落地）；
 - `binName`/`cliName`/`rendererPartition`：随 7b 一并评估定案。
 
@@ -79,7 +79,7 @@
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
 | 7 前置 | 按第 3 节"放弃"第二行摘除发行证据链（先摘 `package.json` 与 CI 引用，再删代码与 `tests/upgrade/**`、`release/evidence/*`，同步 development.md §9 与 upgrade-guide）                                          | `pnpm check` 绿；CI 配置不再引用已删命令                 |
 | 7      | staging + `package:dir`/`package:dmg`（fresh clone 需先 `generate:compatibility`；`build:native` 需 Xcode CLT）                                                                                              | 可安装制品装上能启动。此后每个工作台都用**打包产物**验收 |
-| 7b     | **包名与身份收尾**（打包前、门禁保护下，一步做完，不与删除混在同一变更）：包名前缀 `@dsh-desktop/*` → `@deskwork/*`、根包名 → `deskwork`、`appId` 定稿；`binName`/`cliName`/`rendererPartition` 一并评估定案 | `pnpm check` 绿                                          |
+| 7b     | **包名与身份收尾**（打包前、门禁保护下，一步做完，不与删除混在同一变更）：包名前缀 `@deskwork/*` → `@deskwork/*`、根包名 → `deskwork`、`appId` 定稿；`binName`/`cliName`/`rendererPartition` 一并评估定案 | `pnpm check` 绿                                          |
 
 ### 第四段 · 工作台（每步一个独立可验收的插件，按依赖排序）
 

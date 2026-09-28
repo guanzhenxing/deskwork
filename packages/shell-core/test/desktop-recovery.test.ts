@@ -8,7 +8,7 @@ import {
   acquireHomeLease,
   createNativeProcessProbe,
   defaultLeaseHelperPath,
-} from '@dsh-desktop/home-lease'
+} from '@deskwork/home-lease'
 
 import { createDesktopProfileRecovery } from '../src/desktop-recovery.js'
 

@@ -1,4 +1,4 @@
-import type { StartupFailure } from '@dsh-desktop/shell-core'
+import type { StartupFailure } from '@deskwork/shell-core'
 
 export type RecoveryActionName = 'retry' | 'safe-mode' | 'quit'
 

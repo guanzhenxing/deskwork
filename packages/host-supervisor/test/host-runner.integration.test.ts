@@ -12,12 +12,13 @@ import {
   createEnvelopeWriter,
   parseHostEnvelope,
   type LauncherEnvelope,
-} from '@dsh-desktop/desktop-contracts/host-control'
+} from '@deskwork/desktop-contracts/host-control'
 import {
   createIsolatedHomeAuthority,
   createProfileRef,
+  DESKTOP_BUNDLE_PREFIX,
   reconcileDesktopProfile,
-} from '@dsh-desktop/profile-manager'
+} from '@deskwork/profile-manager'
 
 import {
   createIsolatedHomeFixture,
@@ -27,7 +28,7 @@ import {
   acquireHomeLease,
   createNativeProcessProbe,
   resolveLeaseHelperPath,
-} from '@dsh-desktop/home-lease'
+} from '@deskwork/home-lease'
 import { runDshHost, type HostControlTransport } from '../src/host-runner.js'
 import { HostSupervisor, type HostBootstrap, type ManagedHostProcess } from '../src/supervisor.js'
 
@@ -211,22 +212,23 @@ describe('real DSH Host runner', () => {
     const home = await testHome()
     const upstreamHome = await testHome()
     const ref = createProfileRef(home, 'deskwork')
-    const upstreamDir = path.join(upstreamHome, 'profiles', 'desktop')
+    const upstreamDir = path.join(upstreamHome, 'profiles', 'deskwork')
     await reconcileDesktopProfile(ref, createIsolatedHomeAuthority(home, path.dirname(home)))
-    initProfile(upstreamDir, [
-      '@deepseek-ai/dsh-base',
-      '@deepseek-ai/dsh-web-app',
-      '@dsh-desktop/desktop-plugin',
-    ])
+    initProfile(upstreamDir, [...DESKTOP_BUNDLE_PREFIX])
     // Upstream's extra comments are not part of the patch format contract.
     expect(loadOptionalPatches('parity', path.join(ref.dir, 'cordis.patch.yml'))).toEqual(
       loadOptionalPatches('parity', path.join(upstreamDir, 'cordis.patch.yml')),
     )
-    for (const filename of ['package.json', 'pnpm-workspace.yaml']) {
-      expect(await readFile(path.join(ref.dir, filename), 'utf8')).toBe(
-        await readFile(path.join(upstreamDir, filename), 'utf8'),
-      )
-    }
+    // patchReload: 'live' is the app-owned addition on top of the upstream
+    // profile format; everything else must equal upstream's init byte-for-byte.
+    const owned = JSON.parse(await readFile(path.join(ref.dir, 'package.json'), 'utf8'))
+    const upstream = JSON.parse(await readFile(path.join(upstreamDir, 'package.json'), 'utf8'))
+    const ownedProfile = structuredClone(owned.dsh.profile)
+    delete ownedProfile.patchReload
+    expect({ ...owned, dsh: { ...owned.dsh, profile: ownedProfile } }).toEqual(upstream)
+    expect(await readFile(path.join(ref.dir, 'pnpm-workspace.yaml'), 'utf8')).toBe(
+      await readFile(path.join(upstreamDir, 'pnpm-workspace.yaml'), 'utf8'),
+    )
   })
 
   it('rejects a profiles symlink before materializing any fallback', async () => {
@@ -346,7 +348,7 @@ describe('real DSH Host runner', () => {
     const lease = await acquireHomeLease({
       home,
       entrypoint: 'desktop',
-      profile: 'desktop',
+      profile: 'deskwork',
       appVersion: '0.0.0',
       probe,
     })
@@ -394,7 +396,7 @@ describe('real DSH Host runner', () => {
     const lease = await acquireHomeLease({
       home,
       entrypoint: 'desktop',
-      profile: 'desktop',
+      profile: 'deskwork',
       appVersion: '0.0.0',
       probe,
     })

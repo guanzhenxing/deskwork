@@ -1,5 +1,5 @@
 {
-  "name": "@dsh-desktop/desktop-contracts",
+  "name": "@deskwork/desktop-contracts",
   "version": "0.0.0",
   "private": true,
   "type": "module",

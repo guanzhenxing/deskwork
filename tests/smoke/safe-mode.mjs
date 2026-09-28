@@ -18,8 +18,8 @@ const dshBin = path.join(path.dirname(dshManifest), 'lib', 'bin.js')
 const requireFromShellCore = createRequire(
   path.join(root, 'packages', 'shell-core', 'package.json'),
 )
-const shellCore = requireFromShellCore('@dsh-desktop/shell-core')
-const homeLease = requireFromShellCore('@dsh-desktop/home-lease')
+const shellCore = requireFromShellCore('@deskwork/shell-core')
+const homeLease = requireFromShellCore('@deskwork/home-lease')
 const { RecoverySessionController, StartupFailureError, createDesktopProfileRecovery } = shellCore
 const { acquireHomeLease, createInProcessGuardLock } = homeLease
 

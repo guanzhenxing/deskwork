@@ -28,7 +28,7 @@ test('rejects product plugin imports from the Host mechanism', async () => {
     await mkdir(sourceDir, { recursive: true })
     await writeFile(
       path.join(sourceDir, 'host-runner.ts'),
-      "import type { DesktopSurfaceService } from '@dsh-desktop/desktop-plugin'\n",
+      "import type { DesktopSurfaceService } from '@deskwork/desktop-plugin'\n",
     )
     assert.deepEqual(
       (await findBoundaryViolations(root)).map((item) => item.rule),
@@ -83,7 +83,7 @@ test('allows the Electron Host entry adapter to import the Host runner', async (
     await mkdir(sourceDir, { recursive: true })
     await writeFile(
       path.join(sourceDir, 'host-entry.ts'),
-      "import { runDshHost } from '@dsh-desktop/host-supervisor/host-runner'\n",
+      "import { runDshHost } from '@deskwork/host-supervisor/host-runner'\n",
     )
 
     assert.deepEqual(await findBoundaryViolations(root), [])
@@ -180,7 +180,7 @@ test('requires capability-specific desktop-contracts imports', async () => {
     await mkdir(sourceDir, { recursive: true })
     await writeFile(
       path.join(sourceDir, 'index.ts'),
-      "import { HOST_CONTROL_PROTOCOL } from '@dsh-desktop/desktop-contracts'\n",
+      "import { HOST_CONTROL_PROTOCOL } from '@deskwork/desktop-contracts'\n",
     )
 
     const violations = await findBoundaryViolations(root)

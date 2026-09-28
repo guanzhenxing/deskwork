@@ -1,5 +1,5 @@
 {
-  "name": "@dsh-desktop/profile-manager",
+  "name": "@deskwork/profile-manager",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -14,8 +14,8 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@dsh-desktop/desktop-contracts": "workspace:*",
-    "@dsh-desktop/home-lease": "workspace:*",
-    "@dsh-desktop/product-config": "workspace:*"
+    "@deskwork/desktop-contracts": "workspace:*",
+    "@deskwork/home-lease": "workspace:*",
+    "@deskwork/product-config": "workspace:*"
   }
 }

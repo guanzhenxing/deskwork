@@ -1,5 +1,5 @@
 {
-  "name": "@dsh-desktop/host-supervisor",
+  "name": "@deskwork/host-supervisor",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -32,10 +32,10 @@
     "@deepseek-ai/dsh-subagent-in-process-driver": "0.2.0-rc.1",
     "@deepseek-ai/dsh-util-workspace-path": "0.2.0-rc.1",
     "@deepseek-ai/dsh-web-app": "0.2.0-rc.1",
-    "@dsh-desktop/desktop-contracts": "workspace:*",
-    "@dsh-desktop/home-lease": "workspace:*"
+    "@deskwork/desktop-contracts": "workspace:*",
+    "@deskwork/home-lease": "workspace:*"
   },
   "devDependencies": {
-    "@dsh-desktop/profile-manager": "workspace:*"
+    "@deskwork/profile-manager": "workspace:*"
   }
 }

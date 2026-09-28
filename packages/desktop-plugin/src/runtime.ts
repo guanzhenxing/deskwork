@@ -1,9 +1,9 @@
 import {
   validateLoopbackSurface,
   type DesktopSurfaceService,
-} from '@dsh-desktop/desktop-contracts/host-control'
+} from '@deskwork/desktop-contracts/host-control'
 
-export type { DesktopSurfaceService } from '@dsh-desktop/desktop-contracts/host-control'
+export type { DesktopSurfaceService } from '@deskwork/desktop-contracts/host-control'
 
 export interface DesktopSurfacePublisherServices {
   connection: { authenticatedUrl(baseUrl: string): string }

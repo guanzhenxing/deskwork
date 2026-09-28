@@ -1,5 +1,5 @@
 {
-  "name": "deepseek-harness-desktop",
+  "name": "deskwork",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
@@ -9,7 +9,7 @@
     "node": "^22.19.0 || >=24.0.0"
   },
   "scripts": {
-    "start": "pnpm --filter @dsh-desktop/desktop-launcher start",
+    "start": "pnpm --filter @deskwork/desktop-launcher start",
     "build": "tsc -b",
     "build:icons": "node scripts/build-icons.mjs",
     "build:native": "node scripts/build-lease-helper.mjs",

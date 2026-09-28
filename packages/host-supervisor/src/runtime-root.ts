@@ -2,7 +2,7 @@ import type { Stats } from 'node:fs'
 import { lstat, mkdtemp, realpath, rm } from 'node:fs/promises'
 import path from 'node:path'
 
-import { RESERVED_PROFILE_NAME_PREFIX } from '@dsh-desktop/desktop-contracts/profile-name'
+import { RESERVED_PROFILE_NAME_PREFIX } from '@deskwork/desktop-contracts/profile-name'
 
 export type RuntimeRoot = Readonly<{ dir: string; remove(): Promise<void> }>
 

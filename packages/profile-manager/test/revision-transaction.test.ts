@@ -18,7 +18,7 @@ import {
   createInProcessGuardLock,
   type HomeLease,
   type ProcessProbe,
-} from '@dsh-desktop/home-lease'
+} from '@deskwork/home-lease'
 
 import { createProfileRef } from '../src/index.js'
 import { planDesktopReconcile } from '../src/reconcile-plan.js'

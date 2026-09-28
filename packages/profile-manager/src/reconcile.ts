@@ -2,9 +2,9 @@ import { createHash, randomUUID } from 'node:crypto'
 import { lstat, mkdir, open, readFile, realpath, rename, rm } from 'node:fs/promises'
 import path from 'node:path'
 
-import { PRODUCT } from '@dsh-desktop/product-config'
+import { PRODUCT } from '@deskwork/product-config'
 
-import { isHomeLease, type HomeLease } from '@dsh-desktop/home-lease'
+import { isHomeLease, type HomeLease } from '@deskwork/home-lease'
 
 import { planDesktopReconcile } from './reconcile-plan.js'
 import { applyProfileTransaction } from './revision-transaction.js'

@@ -27,7 +27,7 @@ import {
   type LauncherToHostMessage,
   type LoopbackSurface,
   type DesktopSurfaceService,
-} from '@dsh-desktop/desktop-contracts/host-control'
+} from '@deskwork/desktop-contracts/host-control'
 
 import { createRuntimeRoot, type RuntimeRoot } from './runtime-root.js'
 import { assertBootProfile, type BootMode } from './boot-profile.js'

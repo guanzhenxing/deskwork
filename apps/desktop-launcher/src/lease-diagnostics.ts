@@ -1,6 +1,6 @@
 import { join, resolve } from 'node:path'
 
-import { PRODUCT } from '@dsh-desktop/product-config'
+import { PRODUCT } from '@deskwork/product-config'
 
 export const DOCTOR_UNLOCK_COMMAND = `${PRODUCT.cliName} doctor --unlock`
 

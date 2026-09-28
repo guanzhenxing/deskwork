@@ -3,7 +3,7 @@ import { stat } from 'node:fs/promises'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { defaultLeaseHelperPath } from '@dsh-desktop/home-lease'
+import { defaultLeaseHelperPath } from '@deskwork/home-lease'
 
 import {
   createSharedHomeFixture,

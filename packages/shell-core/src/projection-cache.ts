@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { lstat, open, readFile, rename, rm, stat } from 'node:fs/promises'
 import path from 'node:path'
 
-import type { HomeLease } from '@dsh-desktop/home-lease'
+import type { HomeLease } from '@deskwork/home-lease'
 
 export type CacheQuarantineResult =
   | Readonly<{ kind: 'unchanged' }>

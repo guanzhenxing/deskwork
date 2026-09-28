@@ -1,6 +1,6 @@
-import type { HostBootstrap } from '@dsh-desktop/host-supervisor'
-import { runDshHost, type HostControlTransport } from '@dsh-desktop/host-supervisor/host-runner'
-import { assertBootProfile, type BootMode } from '@dsh-desktop/host-supervisor/boot-profile'
+import type { HostBootstrap } from '@deskwork/host-supervisor'
+import { runDshHost, type HostControlTransport } from '@deskwork/host-supervisor/host-runner'
+import { assertBootProfile, type BootMode } from '@deskwork/host-supervisor/boot-profile'
 
 // Must run before the dynamically loaded upstream app graph starts
 // compiling. The launcher also injects a --require preload for the same
