@@ -58,7 +58,7 @@ async function leasedSession(homeDir, options) {
   const lease = await acquireHomeLease({
     home: homeDir,
     entrypoint: 'desktop',
-    profile: 'desktop',
+    profile: 'deskwork',
     appVersion: '0.0.0',
     probe: sameProbe(),
     guard: createInProcessGuardLock(),
@@ -66,7 +66,7 @@ async function leasedSession(homeDir, options) {
   const session = { attempts: [], views: [] }
   session.controller = new RecoverySessionController({
     acquireLease: async () => lease,
-    profile: createDesktopProfileRecovery({ home: homeDir, profileName: 'desktop' }),
+    profile: createDesktopProfileRecovery({ home: homeDir, profileName: 'deskwork' }),
     admitHome: () => releaseCompatibility.admitHome({ home: homeDir }),
     createAttempt: (_lease, mode) => {
       session.attempts.push(mode)
@@ -107,7 +107,7 @@ async function assertSentinels(homeDir) {
 }
 
 async function recoveryChainScenario() {
-  await mkdir(path.join(home, 'profiles', 'desktop'), { recursive: true, mode: 0o700 })
+  await mkdir(path.join(home, 'profiles', 'deskwork'), { recursive: true, mode: 0o700 })
   await seedSentinels(home)
   const session = await leasedSession(home, {
     boot: () => Promise.reject(attributedFailure),
@@ -119,7 +119,7 @@ async function recoveryChainScenario() {
   if (session.views[0].failure.category !== 'profile-composition') {
     throw new Error(`unexpected category ${session.views[0].failure.category}`)
   }
-  const manifest = path.join(home, 'profiles', 'desktop', 'package.json')
+  const manifest = path.join(home, 'profiles', 'deskwork', 'package.json')
   await readFile(manifest).then(
     () => {
       throw new Error('rollback left a created manifest behind')
@@ -134,7 +134,7 @@ async function recoveryChainScenario() {
 }
 
 async function admissionScenario() {
-  await mkdir(path.join(home, 'profiles', 'desktop'), { recursive: true, mode: 0o700 })
+  await mkdir(path.join(home, 'profiles', 'deskwork'), { recursive: true, mode: 0o700 })
   await mkdir(path.join(home, 'run'), { recursive: true })
   await writeFile(
     path.join(home, 'run', 'compatibility.json'),
@@ -175,7 +175,7 @@ async function safeModeScenario() {
   // controller's Safe Mode entry prepares the fixed first-party profile
   // itself, and the safe attempt becomes healthy — all through code from the
   // installed closure.
-  const normalDir = path.join(home, 'profiles', 'desktop')
+  const normalDir = path.join(home, 'profiles', 'deskwork')
   await mkdir(normalDir, { recursive: true, mode: 0o700 })
   await writeFile(
     path.join(normalDir, 'package.json'),

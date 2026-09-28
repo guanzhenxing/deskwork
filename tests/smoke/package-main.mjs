@@ -653,7 +653,7 @@ function cliPluginScenario(install) {
       )
       await writeFile(
         path.join(fixturePackage, 'cordis.patch.yml'),
-        '# Minimal first-party fixture patch for the artifact-level plugin smoke.\n',
+        '# Minimal first-party fixture patch for the artifact-level plugin smoke.\n[]\n',
       )
       const added = await runInstalledCli(
         install.cliEntry,
