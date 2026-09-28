@@ -24,7 +24,7 @@ Deskwork（案头）是基于 DeepSeek Harness（DSH）的本地 AI 工作台。
 - Desktop 运行时，`dsh-native` 的 boot 与 `plugin` 变更会被 home lease 拒绝（退出码 3）；反之亦然；不同 profile 不构成例外；
 - `dsh-native` 是唯一受本项目支持并遵守 lease 的 CLI；官方裸 `dsh` 默认使用它自己的 `~/.dsh`，与 Deskwork home 互不相干，也不经过本项目拦截；
 - 残留锁用 `dsh-native doctor --unlock` 在确认无活跃 owner 后清理；
-- 长期路线是一个 Host 被 Electron、本地 CLI 和授权远程客户端复用，见[路线图](docs/roadmap.md)。
+- 长期路线是一个 Host 被 Electron、本地 CLI 和授权远程客户端复用（长期进入条件见架构文档的进入条件表）。
 
 ## 架构摘要
 
@@ -97,7 +97,7 @@ corepack pnpm@11.7.0 smoke:package    # 安装级制品冒烟
 
 当前版本：**v0.1.0**（darwin-arm64）。候选已通过完整发布链（含安装级冒烟与跨版本升级演练）；按[开发指南](docs/development.md)的发布流程，完成一个日用观察周期后才正式标记为当前发布。
 
-以下能力不在当前版本内（进入条件见[路线图](docs/roadmap.md)）：自动更新、插件市场、远程访问、setup wizard、桌面终端、多 profile UI、Windows/Linux 支持、预编译制品签名与公证。
+以下能力不在当前版本内（进入条件见架构文档的进入条件表）：自动更新、插件市场、远程访问、setup wizard、桌面终端、多 profile UI、Windows/Linux 支持、预编译制品签名与公证。
 
 已知限制：
 
@@ -108,7 +108,6 @@ Dock 图标与 Dock 右键退出已于 2026-09-09 完成人工验证。
 ## 文档
 
 - [架构](docs/architecture.md)：组件、进程、信任边界和依赖方向；
-- [路线图](docs/roadmap.md)：范围外能力与各自的进入条件；
 - [Host-control 1.0](docs/protocols/host-control.md)：launcher/Host normative 协议；
 - [home-lease 协议](docs/protocols/home-lease.md)：整 home 写入互斥、owner 身份与 doctor 清锁（含 `dsh-native` 退出码）；
 - [home-compatibility 协议](docs/protocols/home-compatibility.md)：跨版本数据准入；

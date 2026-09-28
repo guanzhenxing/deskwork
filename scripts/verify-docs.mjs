@@ -10,7 +10,6 @@ const requiredDocuments = [
   'README.md',
   'SECURITY.md',
   'docs/architecture.md',
-  'docs/roadmap.md',
   'docs/data-layout.md',
   'docs/development.md',
   'docs/compatibility.json',

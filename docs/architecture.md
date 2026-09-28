@@ -1,6 +1,6 @@
 # 架构
 
-- 相关文档：[协议](protocols/)、[数据布局](data-layout.md)、[路线图](roadmap.md)
+- 相关文档：[协议](protocols/)、[数据布局](data-layout.md)
 
 ## 1. 架构目标
 
@@ -100,7 +100,7 @@ Electron renderer 只加载 Host 发布的 authenticated loopback URL。Host run
 `packages/profile-manager`：
 
 - 唯一拥有 `ProfileRef`、reconcile、修订恢复和 Safe Mode 投影规则；
-- 以后唯一拥有 generation ledger、事务 journal 和 drift 处理（见[路线图](roadmap.md)）；
+- 以后唯一拥有 generation ledger、事务 journal 和 drift 处理（见数据布局的迁移原则）；；
 - 不依赖 Electron，也不启动 Host；
 - 共享 home 写入要求调用方持有对应 home lease；隔离冒烟入口使用绑定 `<userData>` 下专属隔离 home 的 authority；
 - 隔离 authority 下唯一写入的 profile 文件是 manifest、用户 patch 模板与 profile workspace 配置；Host runner 不成为这些文件的第二权威。
@@ -209,14 +209,14 @@ Safe Mode 不读取正常 profile 的 `desktop-plugin`、第三方 bundle、依�
 
 ## 9. 未来能力与进入条件
 
-各项能力的完整规划见[路线图](roadmap.md)。进入实现前的共同门槛：
+进入实现前的共同门槛：
 
-| 能力                 | 进入实现前的门槛                                                                                                    |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| 单 Host 多客户端     | 本地 discovery/attach、Host 所有权、客户端 principal 和协议设计                                                     |
-| 更新                 | Developer ID、notarization、签名信任根、last-effective policy、emergency stable source、迁移/降级规则               |
-| 插件市场             | recovery bridge Safe Mode、profile generation journal、plugin package contract、受信 catalog、故障归因与 drift 流程 |
-| 远程                 | 固定 DSH 基线上的 principal 传播和逐方法授权 prototype、设备撤销、TLS/可信 relay 与审计设计                         |
+| 能力             | 进入实现前的门槛                                                                                                    |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------- |
+| 单 Host 多客户端 | 本地 discovery/attach、Host 所有权、客户端 principal 和协议设计                                                     |
+| 更新             | Developer ID、notarization、签名信任根、last-effective policy、emergency stable source、迁移/降级规则               |
+| 插件市场         | recovery bridge Safe Mode、profile generation journal、plugin package contract、受信 catalog、故障归因与 drift 流程 |
+| 远程             | 固定 DSH 基线上的 principal 传播和逐方法授权 prototype、设备撤销、TLS/可信 relay 与审计设计                         |
 
 这些门槛是 just-in-time 设计关卡，不要求当前版本提前实现未来产品能力。
 

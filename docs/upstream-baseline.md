@@ -1,6 +1,6 @@
 # Upstream Baseline
 
-- 相关文档：[路线图](roadmap.md)、[兼容性清单](compatibility.json)
+- 相关文档：[兼容性清单](compatibility.json)
 - 机器可读事实：[build/upstream-artifacts.json](../build/upstream-artifacts.json)、[build/compatibility-policy.json](../build/compatibility-policy.json)
 - 校验门禁：`pnpm verify:dsh-closure`（lockfile/清单侧）、`pnpm verify:runtime-tree`（staged 闭包侧）、`pnpm verify:patches`（补丁账本）
 

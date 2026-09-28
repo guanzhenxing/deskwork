@@ -3,7 +3,7 @@
 - 状态：草案（设计记录，未进入实现；产品已定名 Deskwork，中文"案头"）
 - 日期：2026-09-27
 - 性质：新产品方向的设计说明；本文不改变本仓库 v0.1.0 的范围与承诺
-- 相关文档：[upstream-baseline](upstream-baseline.md)、[roadmap](roadmap.md)、[upgrade-guide](upgrade-guide.md)、[plugin-intake](plugin-intake.md)
+- 相关文档：[upstream-baseline](upstream-baseline.md)、[upgrade-guide](upgrade-guide.md)、[plugin-intake](plugin-intake.md)
 
 ## 1. 背景与决策
 
@@ -19,11 +19,11 @@
 
 仿照 [upstream-baseline](upstream-baseline.md) 的记录规则，外部参考固定在实际阅读的提交/发布点上，避免把参考项目后续变化误当成当初依据：
 
-| 对象                 | 固定观察点                                                                                            | 用途                                                                       |
-| -------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| techflag/workdsh     | main @ 2026-09-26（desktop-v2.0.6-alpha.1 与 web v0.1.0-alpha.14 发布日）                             | 产品功能面、Profile 组合模型、发布门禁                                     |
-| 上游 DSH             | `0.1.7-rc.2`（workdsh `upstream.json` 记录 commit `477b4f42`）                                        | cordis 插件机制、官方文档集（cordis-primer、capability-seams、module-graph） |
-| 官方 DSH 桌面        | 上游 `apps/desktop` README（master 分支）                                                             | 确认官方桌面独占 `profiles/desktop`、不支持第三方 profile                   |
+| 对象             | 固定观察点                                                                | 用途                                                                         |
+| ---------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| techflag/workdsh | main @ 2026-09-26（desktop-v2.0.6-alpha.1 与 web v0.1.0-alpha.14 发布日） | 产品功能面、Profile 组合模型、发布门禁                                       |
+| 上游 DSH         | `0.1.7-rc.2`（workdsh `upstream.json` 记录 commit `477b4f42`）            | cordis 插件机制、官方文档集（cordis-primer、capability-seams、module-graph） |
+| 官方 DSH 桌面    | 上游 `apps/desktop` README（master 分支）                                 | 确认官方桌面独占 `profiles/desktop`、不支持第三方 profile                    |
 
 两个事实性备注：
 
@@ -45,10 +45,10 @@
 | 项                     | 值                                                   |
 | ---------------------- | ---------------------------------------------------- |
 | 产品名                 | Deskwork                                             |
-| 中文名/副题            | 案头 —— 基于 DeepSeek Harness 的本地 AI 工作台        |
-| 仓库名                 | deskwork（本仓库已自 deepseek-harness-desktop 更名）  |
+| 中文名/副题            | 案头 —— 基于 DeepSeek Harness 的本地 AI 工作台       |
+| 仓库名                 | deskwork（本仓库已自 deepseek-harness-desktop 更名） |
 | 包名前缀               | `@deskwork/*`                                        |
-| Electron userData 目录 | `Deskwork`（固定，不随展示名变更）                    |
+| Electron userData 目录 | `Deskwork`（固定，不随展示名变更）                   |
 | DSH Profile 名         | `deskwork`                                           |
 
 命名边界：
@@ -61,24 +61,24 @@
 
 ### 4.1 五大工作台（产品 bundle，对外可见）
 
-| 模块   | 功能点                                                                                                                          | workdsh 现状 |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| 模块   | 功能点                                                                                                                              | workdsh 现状 |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------- | ------------ |
 | 项目   | 集中管理任务、计划、资产、活动记录；会话中选择项目能力；任务引用资料库的指定修订（pinned revision，历史任务不随源文件漂移自动切换） | 已发布       |
-| 资料库 | 本地目录导入与浏览、全文检索、文件预览（Markdown/TXT/HTML/PDF/Word/PPT）、选定修订引用进任务、从引用直接发起会话                | 已发布       |
-| 专家   | 专家配置（角色/方法/头像）；制作→草稿→评审→发布冻结修订的生命周期；专家团队；内置只读专家复制为"我的专家"                          | 已发布       |
-| 技能   | SKILL.md 管理、启用/禁用、任务内斜杠命令；ZIP/SKILL.md 导入；SkillHub 目录（图标/搜索/分页/源链接/版本/托管安装）                  | 已发布       |
-| 连接器 | MCP 服务配置，任务中显式勾选启用哪些能力                                                                                         | 已发布       |
+| 资料库 | 本地目录导入与浏览、全文检索、文件预览（Markdown/TXT/HTML/PDF/Word/PPT）、选定修订引用进任务、从引用直接发起会话                    | 已发布       |
+| 专家   | 专家配置（角色/方法/头像）；制作→草稿→评审→发布冻结修订的生命周期；专家团队；内置只读专家复制为"我的专家"                           | 已发布       |
+| 技能   | SKILL.md 管理、启用/禁用、任务内斜杠命令；ZIP/SKILL.md 导入；SkillHub 目录（图标/搜索/分页/源链接/版本/托管安装）                   | 已发布       |
+| 连接器 | MCP 服务配置，任务中显式勾选启用哪些能力                                                                                            | 已发布       |
 
 ### 4.2 支撑服务（Profile 内私有，不出现在插件管理器）
 
-| 模块             | 功能点                                                                                                                                                  |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| office           | 交付物"工作副本"的实时预览与编辑：Word（Tiptap + TableKit/Image、DOCX 导入导出、AI 实时共写侧栏）、PPT（React PPT 编辑器 + pptx-viewer）、表格（Univer/ExcelJS，实验性）、HTML（任务浏览器实时预览）、PDF（PDF.js + pdf-lib） |
-| activity         | 紧凑工作动态流：原生任务与子代理活动                                                                                                                    |
-| browser-session  | 受管浏览器：agent 驱动的网页出现在右侧任务浏览器，与 Playwright MCP 共享同一个 Electron 页面（不打包第二份浏览器）；附件/输入/发送走 Harness 原生能力     |
-| identity-local   | 本地身份                                                                                                                                                 |
-| access           | 访问控制                                                                                                                                                 |
-| audit            | 审计事件                                                                                                                                                 |
+| 模块            | 功能点                                                                                                                                                                                                                        |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| office          | 交付物"工作副本"的实时预览与编辑：Word（Tiptap + TableKit/Image、DOCX 导入导出、AI 实时共写侧栏）、PPT（React PPT 编辑器 + pptx-viewer）、表格（Univer/ExcelJS，实验性）、HTML（任务浏览器实时预览）、PDF（PDF.js + pdf-lib） |
+| activity        | 紧凑工作动态流：原生任务与子代理活动                                                                                                                                                                                          |
+| browser-session | 受管浏览器：agent 驱动的网页出现在右侧任务浏览器，与 Playwright MCP 共享同一个 Electron 页面（不打包第二份浏览器）；附件/输入/发送走 Harness 原生能力                                                                         |
+| identity-local  | 本地身份                                                                                                                                                                                                                      |
+| access          | 访问控制                                                                                                                                                                                                                      |
+| audit           | 审计事件                                                                                                                                                                                                                      |
 
 ### 4.3 生态接入
 
@@ -160,15 +160,15 @@ deskwork/
 
 ### 6.4 里程碑
 
-| 阶段   | 交付                                                                       | 验收                                       |
-| ------ | -------------------------------------------------------------------------- | ------------------------------------------ |
-| 阶段一 | Profile 骨架：pin + 整合 bundle + 1 个空工作台出现在官方 Web UI             | `listBundles()` 门禁跑通                    |
-| 阶段二 | skills + library（含检索/预览/修订引用）                                    | 与上游 skill loader 对齐测试                |
-| 阶段三 | experts + projects + activity                                               | 修订冻结不漂移的回归测试                    |
-| 阶段四 | office（Word→PPT→HTML→PDF→表格）                                            | 按格式分档的端到端往返校验                  |
-| 阶段五 | connectors + identity/access/audit + browser-session                        | 受管浏览器与 MCP 共存验证                   |
-| 阶段六 | 生态目录接入 + Web 插件线发布                                               | 校验和 + 兼容性过滤                         |
-| 阶段七 | 桌面壳：继承监督/恢复/Safe Mode/lease/准入                                  | 本仓库 smoke 套件复用                       |
+| 阶段   | 交付                                                            | 验收                         |
+| ------ | --------------------------------------------------------------- | ---------------------------- |
+| 阶段一 | Profile 骨架：pin + 整合 bundle + 1 个空工作台出现在官方 Web UI | `listBundles()` 门禁跑通     |
+| 阶段二 | skills + library（含检索/预览/修订引用）                        | 与上游 skill loader 对齐测试 |
+| 阶段三 | experts + projects + activity                                   | 修订冻结不漂移的回归测试     |
+| 阶段四 | office（Word→PPT→HTML→PDF→表格）                                | 按格式分档的端到端往返校验   |
+| 阶段五 | connectors + identity/access/audit + browser-session            | 受管浏览器与 MCP 共存验证    |
+| 阶段六 | 生态目录接入 + Web 插件线发布                                   | 校验和 + 兼容性过滤          |
+| 阶段七 | 桌面壳：继承监督/恢复/Safe Mode/lease/准入                      | 本仓库 smoke 套件复用        |
 
 ### 6.5 上游 DSH 升级跟进
 
@@ -192,14 +192,14 @@ deskwork/
 
 ## 8. 与本仓库的关系（资产映射）
 
-| 本仓库资产                                       | 新产品用途                                     |
-| ------------------------------------------------ | ---------------------------------------------- |
-| `packages/host-supervisor`                       | 壳层 Host 进程监督与恢复窗口                    |
-| `packages/desktop-recovery-bridge` + Safe Mode   | 最小恢复会话与第一方恢复桥                      |
-| `packages/home-lease`                            | 共享 home 顺序互斥（是否启用为产品决策）        |
-| `packages/profile-manager`                       | 逐文件修订事务恢复                             |
-| `packages/release-compatibility`                 | 兼容性准入与发行证据链（SBOM/清单/摘要绑定）    |
-| `scripts/plugin-intake.mjs` 审查工作流            | 生态目录安装的逐字节校验与制品级隔离演练        |
-| `docs/upgrade-guide.md` 演练纪律                  | 上游升级跟进流程（见 6.5）                      |
+| 本仓库资产                                     | 新产品用途                                   |
+| ---------------------------------------------- | -------------------------------------------- |
+| `packages/host-supervisor`                     | 壳层 Host 进程监督与恢复窗口                 |
+| `packages/desktop-recovery-bridge` + Safe Mode | 最小恢复会话与第一方恢复桥                   |
+| `packages/home-lease`                          | 共享 home 顺序互斥（是否启用为产品决策）     |
+| `packages/profile-manager`                     | 逐文件修订事务恢复                           |
+| `packages/release-compatibility`               | 兼容性准入与发行证据链（SBOM/清单/摘要绑定） |
+| `scripts/plugin-intake.mjs` 审查工作流         | 生态目录安装的逐字节校验与制品级隔离演练     |
+| `docs/upgrade-guide.md` 演练纪律               | 上游升级跟进流程（见 6.5）                   |
 
 本仓库已更名为 deskwork（GitHub 同步更名），作为新产品的蓝图与资产库：旧 v0.1.0 实现整体保留，作为上表资产的回迁来源；重建按 6.1 的工作区结构推进，逐阶段替换旧实现。

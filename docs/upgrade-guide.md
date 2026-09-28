@@ -1,7 +1,7 @@
 # 升级与回退指南
 
 - 适用对象：Deskwork 的手动升级与回退（当前版本无自动更新器）
-- 相关文档：[upstream-baseline](upstream-baseline.md)、[home-compatibility 协议](protocols/home-compatibility.md)、[路线图](roadmap.md)
+- 相关文档：[upstream-baseline](upstream-baseline.md)、[home-compatibility 协议](protocols/home-compatibility.md)
 
 ## 1. 手动升级流程
 
