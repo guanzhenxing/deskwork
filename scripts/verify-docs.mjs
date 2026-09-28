@@ -8,8 +8,6 @@ const repositoryRoot = fileURLToPath(new URL('../', import.meta.url))
 
 const requiredDocuments = [
   'README.md',
-  'CHANGELOG.md',
-  'CONTRIBUTING.md',
   'SECURITY.md',
   'docs/architecture.md',
   'docs/roadmap.md',
@@ -37,6 +35,7 @@ const additionalPublicTextFiles = [
 
 const ignoredDirectories = new Set([
   '.git',
+  'archive',
   '.pnpm-store',
   '.tmp',
   'coverage',

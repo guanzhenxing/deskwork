@@ -91,7 +91,7 @@ corepack pnpm@11.7.0 smoke:safe-mode
 corepack pnpm@11.7.0 smoke:package    # 安装级制品冒烟
 ```
 
-完整命令清单与工程规范见[开发指南](docs/development.md)与[贡献指南](CONTRIBUTING.md)。
+完整命令清单与工程规范见[开发指南](docs/development.md)。历史文档（v0.1.0 变更记录、转向前贡献指南、被取代的 v1 执行计划）归档于 `docs/archive/`。
 
 ## 范围与限制
 

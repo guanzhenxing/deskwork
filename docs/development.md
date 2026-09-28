@@ -1,6 +1,5 @@
 # 开发指南
 
-- 入门与贡献流程见[贡献指南](../CONTRIBUTING.md)
 - 架构与边界见[架构](architecture.md)
 
 ## 1. 开发环境
@@ -56,39 +55,39 @@ deepseek-harness-desktop/
 
 ## 3. 命令清单
 
-| 命令                                        | 用途                                                        |
-| ------------------------------------------- | ----------------------------------------------------------- |
-| `pnpm build`                                | 构建全部 TypeScript project references                      |
-| `pnpm start`                                | 从仓库根启动桌面应用（转发到 launcher 的 `electron .`）     |
-| `pnpm build:icons`                          | 从原创 SVG 生成 ICNS 与托盘模板（macOS 自带工具）           |
-| `pnpm build:native`                         | 编译原生 lease helper（需要 Xcode CLT）                     |
-| `pnpm format:check`                         | 检查格式但不修改文件                                        |
-| `pnpm lint`                                 | 静态规则与依赖边界                                          |
-| `pnpm typecheck`                            | 全仓库 TypeScript 类型检查                                  |
-| `pnpm test:unit`                            | 纯函数、schema、state machine 和组件单元测试                |
-| `pnpm test:integration`                     | 构建后用隔离 home 启动真实 DSH Host 和官方 Web surface      |
-| `pnpm test:shared-home`                     | 双向共享 home 会话接续（Desktop/CLI 互续）                  |
-| `pnpm stage:runtime`                        | 物化自含 staging 闭包（Host/CLI/Node/pnpm/helper）          |
-| `pnpm verify:runtime-tree`                  | 校验 staging 完整性、符号链接闭包、singleton 与原生 ABI     |
-| `pnpm generate:compatibility`               | 生成机器可读兼容性清单                                      |
-| `pnpm verify:compatibility`                 | 校验清单与依赖锁一致                                        |
-| `pnpm verify:dsh-closure`                   | lockfile/清单侧 DSH 依赖闭包对账                            |
-| `pnpm verify:patches`                       | 本地补丁账本校验                                            |
-| `pnpm package:dir`                          | icons → staging → 校验 → 未打包 `.app`（ad-hoc 签名）       |
-| `pnpm package:dmg`                          | 在 staging 之上生成 DMG 候选                                |
-| `pnpm smoke:dsh-ui`                         | 独立 Electron/Host PID 的最小官方 DSH UI 闭环               |
-| `pnpm smoke:host-crash`                     | 只终止 Host，验证 launcher 恢复页与最终无残留进程           |
-| `pnpm smoke:profile-recovery`               | 修订恢复不变量                                              |
-| `pnpm smoke:safe-mode`                      | Safe Mode 隔离                                              |
-| `pnpm smoke:conversation`                   | 创建会话、发送一轮、重启后恢复                              |
-| `pnpm smoke:auth` / `smoke:navigation`      | 认证 URL 与导航/外链策略                                    |
-| `pnpm smoke:lifecycle`                      | 关窗隐藏、托盘唤出、重复启动聚焦、退出无残留                |
-| `pnpm smoke:package`                        | 安装级制品冒烟（对 `.app`/DMG 副本执行）                    |
-| `pnpm smoke:startup-performance`            | 启动性能测量                                                |
-| `pnpm verify:plugin-intake`                 | 插件引入制品级隔离演练                                       |
-| `pnpm check:docs`                           | 检查必需文档、兼容性事实、本地链接与文本格式                |
-| `pnpm check`                                | 全部快速阻塞门禁                                            |
-| `pnpm dsh-native -- <args>`                 | 配套 CLI 开发入口（持 lease）                               |
+| 命令                                   | 用途                                                    |
+| -------------------------------------- | ------------------------------------------------------- |
+| `pnpm build`                           | 构建全部 TypeScript project references                  |
+| `pnpm start`                           | 从仓库根启动桌面应用（转发到 launcher 的 `electron .`） |
+| `pnpm build:icons`                     | 从原创 SVG 生成 ICNS 与托盘模板（macOS 自带工具）       |
+| `pnpm build:native`                    | 编译原生 lease helper（需要 Xcode CLT）                 |
+| `pnpm format:check`                    | 检查格式但不修改文件                                    |
+| `pnpm lint`                            | 静态规则与依赖边界                                      |
+| `pnpm typecheck`                       | 全仓库 TypeScript 类型检查                              |
+| `pnpm test:unit`                       | 纯函数、schema、state machine 和组件单元测试            |
+| `pnpm test:integration`                | 构建后用隔离 home 启动真实 DSH Host 和官方 Web surface  |
+| `pnpm test:shared-home`                | 双向共享 home 会话接续（Desktop/CLI 互续）              |
+| `pnpm stage:runtime`                   | 物化自含 staging 闭包（Host/CLI/Node/pnpm/helper）      |
+| `pnpm verify:runtime-tree`             | 校验 staging 完整性、符号链接闭包、singleton 与原生 ABI |
+| `pnpm generate:compatibility`          | 生成机器可读兼容性清单                                  |
+| `pnpm verify:compatibility`            | 校验清单与依赖锁一致                                    |
+| `pnpm verify:dsh-closure`              | lockfile/清单侧 DSH 依赖闭包对账                        |
+| `pnpm verify:patches`                  | 本地补丁账本校验                                        |
+| `pnpm package:dir`                     | icons → staging → 校验 → 未打包 `.app`（ad-hoc 签名）   |
+| `pnpm package:dmg`                     | 在 staging 之上生成 DMG 候选                            |
+| `pnpm smoke:dsh-ui`                    | 独立 Electron/Host PID 的最小官方 DSH UI 闭环           |
+| `pnpm smoke:host-crash`                | 只终止 Host，验证 launcher 恢复页与最终无残留进程       |
+| `pnpm smoke:profile-recovery`          | 修订恢复不变量                                          |
+| `pnpm smoke:safe-mode`                 | Safe Mode 隔离                                          |
+| `pnpm smoke:conversation`              | 创建会话、发送一轮、重启后恢复                          |
+| `pnpm smoke:auth` / `smoke:navigation` | 认证 URL 与导航/外链策略                                |
+| `pnpm smoke:lifecycle`                 | 关窗隐藏、托盘唤出、重复启动聚焦、退出无残留            |
+| `pnpm smoke:package`                   | 安装级制品冒烟（对 `.app`/DMG 副本执行）                |
+| `pnpm smoke:startup-performance`       | 启动性能测量                                            |
+| `pnpm verify:plugin-intake`            | 插件引入制品级隔离演练                                  |
+| `pnpm check:docs`                      | 检查必需文档、兼容性事实、本地链接与文本格式            |
+| `pnpm check`                           | 全部快速阻塞门禁                                        |
+| `pnpm dsh-native -- <args>`            | 配套 CLI 开发入口（持 lease）                           |
 
 打包固定 electron-builder 26.15.3（配置 schema 以安装包内的 app-builder-lib 为准）；Host/CLI 运行时全部来自 `release/staging`（pnpm `--prod` deploy + 官方 Node/pnpm 制品校验），`.app` 内不依赖仓库 `node_modules`、pnpm store、系统 Node/pnpm 或 ASAR 虚拟路径。
 
@@ -182,7 +181,7 @@ profile、lease、会话和迁移测试只使用[数据布局](data-layout.md)�
 | Electron/IPC/navigation | security review、错误 sender/origin/schema 测试                 |
 | runtime/build/package   | `.app`/DMG 冒烟，不只运行开发入口                               |
 | DSH baseline            | 兼容性清单、补丁对账、完整测试与独立升级分支                    |
-| market/remote/updater   | 设计评审、threat-model review、供应链/授权/迁移专项测试        |
+| market/remote/updater   | 设计评审、threat-model review、供应链/授权/迁移专项测试         |
 
 审查沿两个轴分别给结论：
 
@@ -191,16 +190,14 @@ profile、lease、会话和迁移测试只使用[数据布局](data-layout.md)�
 
 ## 8. 文档规则
 
-| 文档                          | 内容权威                       | 何时更新                         |
-| ----------------------------- | ------------------------------ | -------------------------------- |
-| `README.md`                   | 用户入口、范围和最小命令       | 用户可见范围或启动方式变化       |
-| `CHANGELOG.md`                | 版本级显著变更                 | 每次发布                         |
-| `CONTRIBUTING.md`             | 贡献入口与工作流               | 流程或门禁变化                   |
-| `docs/architecture.md`        | 当前组件、进程、信任和依赖边界 | 架构现状变化                     |
-| `docs/roadmap.md`             | 范围外能力与进入条件           | 范围或规划变化                   |
-| `docs/protocols/**`           | normative 跨边界协议           | schema、状态机或版本支持变化     |
-| `docs/data-layout.md`         | 路径、所有权、备份和迁移       | 新持久化状态或迁移出现           |
-| `SECURITY.md`                 | 威胁模型和安全进入条件         | 信任边界、发行或报告流程变化     |
+| 文档                   | 内容权威                       | 何时更新                     |
+| ---------------------- | ------------------------------ | ---------------------------- |
+| `README.md`            | 用户入口、范围和最小命令       | 用户可见范围或启动方式变化   |
+| `docs/architecture.md` | 当前组件、进程、信任和依赖边界 | 架构现状变化                 |
+| `docs/roadmap.md`      | 范围外能力与进入条件           | 范围或规划变化               |
+| `docs/protocols/**`    | normative 跨边界协议           | schema、状态机或版本支持变化 |
+| `docs/data-layout.md`  | 路径、所有权、备份和迁移       | 新持久化状态或迁移出现       |
+| `SECURITY.md`          | 威胁模型和安全进入条件         | 信任边界、发行或报告流程变化 |
 
 版本事实只从依赖锁或 [`compatibility.json`](compatibility.json) 生成。不要在多个 Markdown 文件中手工维护不同的“当前版本”。
 
