@@ -166,9 +166,9 @@ test('patch ledger validation accepts the explicit empty ledger and refuses malf
 
 test('the repository declares exactly the qualified upstream baseline', () => {
   const expectedDshBaseline = Object.freeze({
-    tag: 'dsh-v0.1.7-rc.2',
-    commit: '477b4f420553e8a52c2fbccc464d7561b239c443',
-    npmVersion: '0.1.7-rc.2',
+    tag: 'dsh-v0.2.0-rc.1',
+    commit: '4878cdabd87d4041bdaff61d04c966883b9fd07a',
+    npmVersion: '0.2.0-rc.1',
   })
   const artifacts = JSON.parse(
     readFileSync(new URL('../build/upstream-artifacts.json', import.meta.url), 'utf8'),
