@@ -97,7 +97,7 @@ export function createElectronHostProcessFactory(input: {
             }
       const child = utilityProcess.fork(input.hostEntry, [], {
         env,
-        serviceName: 'DeepSeek Harness Host',
+        serviceName: 'Deskwork Host',
         stdio: 'ignore',
       })
       await new Promise<void>((resolve, reject) => {

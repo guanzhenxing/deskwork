@@ -54,7 +54,7 @@ describe('parseReleaseManifest', () => {
   it('tolerates the embedded runtime extras staged around the release facts', () => {
     const manifest = parseReleaseManifest({
       ...validManifestInput(),
-      productExecutableName: 'DeepSeek Harness Desktop',
+      productExecutableName: 'Deskwork',
       appId: 'com.deepseek.harness.desktop',
       electron: '44.1.0',
       node: '24.11.1',

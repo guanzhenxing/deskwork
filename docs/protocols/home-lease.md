@@ -5,7 +5,7 @@
 
 ## 1. 目标
 
-Desktop 与 `dsh-native` 在共享 DSH home 上顺序互斥：任何 Host boot、profile 写入、缓存清理之前，调用方必须先取得整 home lease。不同 profile 不构成并发例外。
+Desktop 与 `dsh-native` 在共享的 Deskwork home（默认 `~/.deskwork`）上顺序互斥：任何 Host boot、profile 写入、缓存清理之前，调用方必须先取得整 home lease。不同 profile 不构成并发例外。
 
 ## 2. 磁盘布局
 
@@ -78,7 +78,7 @@ doctor:    owner 可读 → 身份判定（活→ACTIVE_OWNER 拒；不可识别
 
 ## 5. `dsh-native` 包装进程与调用方义务
 
-`dsh-native` 是唯一遵守本协议的受支持 CLI 入口；裸 `dsh` 不受本项目拦截，使用前必须完全退出受支持入口。
+`dsh-native` 是唯一遵守本协议的受支持 CLI 入口；官方裸 `dsh` 默认使用它自己的 `~/.dsh`，与 Deskwork home 无关、不受本协议拦截。若用户经 `DSH_HOME` 手动把裸 `dsh` 指向 Deskwork home，则它不经过任何拦截，须自行保证不与受支持入口并发。
 
 launcher/CLI 在 lease 获取成功前不得写 home；启动失败也必须先 stop/确认 Host 退出再释放 lease，不在 `finally` 无条件清锁；无法证明 Host 已死时保留 lease 并报告。
 

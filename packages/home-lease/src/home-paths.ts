@@ -1,6 +1,6 @@
 import path from 'node:path'
 
-const DSH_HOME_DIR_NAME = '.dsh'
+const DESKTOP_HOME_DIR_NAME = '.deskwork'
 const DSH_HOME_ENV = 'DSH_HOME'
 
 export type DesktopHomeInput = Readonly<{
@@ -18,13 +18,15 @@ function expandHomePath(candidate: string, osHome: string): string {
 }
 
 /**
- * Resolve the shared DSH home the desktop entrypoints must agree on.
+ * Resolve the Deskwork home the desktop entrypoints must agree on.
  *
- * Semantics mirror the pinned upstream `resolveDshHome(undefined, env)`: a
- * non-blank `$DSH_HOME` wins, `~` prefixes expand against the OS home, and
- * anything else falls back to `<osHome>/.dsh`. This function stays pure so
- * Electron Main can inject its own env/home/cwd without importing the DSH
- * package.
+ * Override semantics mirror the pinned upstream `resolveDshHome(undefined,
+ * env)`: a non-blank `$DSH_HOME` wins, `~` prefixes expand against the OS
+ * home, and relative values resolve against the caller cwd. The default
+ * intentionally diverges from upstream: Deskwork owns its home at
+ * `<osHome>/.deskwork` and never falls back to the official CLI's `~/.dsh`.
+ * This function stays pure so Electron Main can inject its own env/home/cwd
+ * without importing the DSH package.
  */
 export function resolveDesktopHome(input: DesktopHomeInput): string {
   if (!path.isAbsolute(input.osHome))
@@ -34,7 +36,7 @@ export function resolveDesktopHome(input: DesktopHomeInput): string {
   const configured =
     fromEnv !== undefined && fromEnv.trim().length > 0
       ? fromEnv
-      : path.join(input.osHome, DSH_HOME_DIR_NAME)
+      : path.join(input.osHome, DESKTOP_HOME_DIR_NAME)
   const resolved = path.resolve(input.cwd, expandHomePath(configured, input.osHome))
   if (resolved === path.parse(resolved).root) {
     throw new Error('DSH home must not resolve to the filesystem root')

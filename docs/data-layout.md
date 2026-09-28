@@ -8,16 +8,16 @@
 
 | 变量            | 解析规则                                                                                                                                                                                       |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `<home>`        | `resolveDesktopHome()`（`packages/home-lease`）：`$DSH_HOME` trim 后非空时生效（支持 `~` 展开，相对路径相对进程 cwd），否则为 `~/.dsh`；解析结果不得为 filesystem root。语义与固定版上游 `resolveDshHome` 在隔离进程中对照测试 |
+| `<home>`        | `resolveDesktopHome()`（`packages/home-lease`）：`$DSH_HOME` trim 后非空时生效（支持 `~` 展开，相对路径相对进程 cwd），否则为 `~/.deskwork`（Deskwork 自有 home，不指向官方 CLI 的 `~/.dsh`）；解析结果不得为 filesystem root。覆盖语义与固定版上游 `resolveDshHome` 在隔离进程中对照测试，默认值有意分歧 |
 | `<isolatedHome>` | `<userData>` 下的专属隔离 home；受支持隔离冒烟入口专用，由 Electron 单实例/测试夹具独占，不是共享 `<home>`，不创建 lease                                                               |
 | `<profile>`     | `<home>/profiles/desktop`                                                                                                                                                                        |
 | `<safeProfile>` | Safe Mode 使用 `<home>/profiles/desktop-safe-mode`（精确三 bundle），同时是未来插件市场的前置能力                                                                                                |
-| `<userData>`    | Electron 设置产品身份后返回的 `app.getPath('userData')`；macOS 预期位于 Application Support 下冻结的 `DeepSeek Harness Desktop` 目录（`dataDirectoryName`，不随产品展示名改名迁移）                |
+| `<userData>`    | Electron 设置产品身份后返回的 `app.getPath('userData')`；macOS 预期位于 Application Support 下固定的 `Deskwork` 目录（`dataDirectoryName`，不随产品展示名改名迁移）                |
 | `<testHome>`    | 测试通过系统临时目录 API 单独创建的 DSH home，绝不能指向真实 `<home>`                                                                                                                             |
 
 所有可写路径先解析为绝对路径并验证预期父目录。写入逻辑不得跟随用户可植入的目标 symlink 覆盖其他位置。
 
-产品身份（产品名 `DeepSeek Harness`、冻结的 Electron userData 数据目录名 `DeepSeek Harness Desktop`、CLI 名 `dsh-native`、设置 namespace `dsh-native-shell`、renderer partition、默认 profile 名）集中维护在 `packages/product-config`，该包不允许依赖 Electron 或任何 `@deepseek-ai/*` 包。
+产品身份（产品名 `Deskwork`、固定的 Electron userData 数据目录名 `Deskwork`、自有 DSH home 默认 `~/.deskwork`、CLI 名 `dsh-native`、设置 namespace `dsh-native-shell`、renderer partition、默认 profile 名）集中维护在 `packages/product-config`，该包不允许依赖 Electron 或任何 `@deepseek-ai/*` 包。
 
 ## 2. DSH home
 
@@ -132,7 +132,7 @@ DSH credential、settings、sessions 和 storages 不复制到 `<userData>`。
 
 所有涉及 profile、lease、恢复或迁移的自动化测试必须使用 `<testHome>`：
 
-- 测试开始时由 `tests/helpers/isolated-home.mjs` 的 `createIsolatedHomeFixture()` 在系统临时目录下创建；创建时拒绝环境 `DSH_HOME` 已设置、仓库目录、filesystem root 与真实 `~/.dsh`，清理前复核 realpath 与 dev/ino 身份；
+- 测试开始时由 `tests/helpers/isolated-home.mjs` 的 `createIsolatedHomeFixture()` 在系统临时目录下创建；创建时拒绝环境 `DSH_HOME` 已设置、仓库目录、filesystem root 与真实 `~/.dsh`、`~/.deskwork`，清理前复核 realpath 与 dev/ino 身份；
 - fixture 可以从脱敏数据复制，不能链接到真实 home；
 - 失败时保留路径供诊断，清理命令只能针对已记录且验证过的临时目录；
 - 打包冒烟使用独立临时 macOS userData。

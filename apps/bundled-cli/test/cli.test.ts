@@ -747,7 +747,7 @@ describe('resolvePackagedCliRuntime', () => {
 
   it('resolves the staged dsh bin and the packaged desktop executable', async () => {
     const stagingRoot = await stagingFixture(
-      `${JSON.stringify({ productExecutableName: 'DeepSeek Harness Desktop' })}\n`,
+      `${JSON.stringify({ productExecutableName: 'Deskwork' })}\n`,
     )
     const runtime = resolvePackagedCliRuntime({ stagingRoot })
     const canonicalRoot = realpathSync(stagingRoot)
@@ -758,7 +758,7 @@ describe('resolvePackagedCliRuntime', () => {
     expect(runtime.leaseHelper).toBe(
       path.join(path.dirname(canonicalRoot), 'native', 'lease-helper'),
     )
-    expect(runtime.desktopEntryExecutables[0]).toMatch(/MacOS\/DeepSeek Harness Desktop$/u)
+    expect(runtime.desktopEntryExecutables[0]).toMatch(/MacOS\/Deskwork$/u)
   })
 
   it('fails with a reinstall diagnosis when the embedded manifest is corrupt', async () => {

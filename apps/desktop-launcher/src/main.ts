@@ -957,7 +957,7 @@ else {
         // failure and exit like the lease refusal does.
         if (smokeMode === undefined) {
           dialog.showErrorBox(
-            'DeepSeek Harness 启动失败',
+            'Deskwork 启动失败',
             `启动过程中发生错误，应用即将退出。\n\n${error instanceof Error ? error.message : String(error)}`,
           )
           app.exit(1)

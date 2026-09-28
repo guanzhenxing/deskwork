@@ -42,7 +42,7 @@ const launcher = await readJson(
 const { runStartupPerformance, validateStartupReport } =
   await import('../helpers/startup-performance.mjs')
 const report = await runStartupPerformance({
-  artifact: { dmgPath, appName: 'DeepSeek Harness' },
+  artifact: { dmgPath, appName: 'Deskwork' },
   identity: {
     releaseId: record.releaseId,
     dmgSha256: record.sha256,

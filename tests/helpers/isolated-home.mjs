@@ -25,6 +25,9 @@ function assertOutsideForbiddenRoots(home) {
   if (resolved === path.resolve(path.join(homedir(), '.dsh'))) {
     throw new Error('isolated home must not be the real DSH home')
   }
+  if (resolved === path.resolve(path.join(homedir(), '.deskwork'))) {
+    throw new Error('isolated home must not be the real Deskwork home')
+  }
 }
 
 async function directoryIdentity(dirname, label) {

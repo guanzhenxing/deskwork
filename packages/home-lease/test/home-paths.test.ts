@@ -47,16 +47,16 @@ process.stdout.write(resolveDshHome(undefined, process.env))
 }
 
 describe('resolveDesktopHome', () => {
-  it('uses the OS home default when DSH_HOME is unset or blank', () => {
+  it('uses the Deskwork home default when DSH_HOME is unset or blank', () => {
     expect(resolveDesktopHome({ env: {}, osHome: '/Users/test', cwd: '/tmp/work' })).toBe(
-      '/Users/test/.dsh',
+      '/Users/test/.deskwork',
     )
     expect(
       resolveDesktopHome({ env: { DSH_HOME: '  ' }, osHome: '/Users/test', cwd: '/tmp/work' }),
-    ).toBe('/Users/test/.dsh')
+    ).toBe('/Users/test/.deskwork')
     expect(
       resolveDesktopHome({ env: { DSH_HOME: '' }, osHome: '/Users/test', cwd: '/tmp/work' }),
-    ).toBe('/Users/test/.dsh')
+    ).toBe('/Users/test/.deskwork')
   })
 
   it('resolves relative overrides against the caller cwd', () => {
@@ -115,12 +115,10 @@ describe('resolveDesktopHome', () => {
 })
 
 describe('resolveDesktopHome parity with the pinned upstream resolver', () => {
-  const cases: readonly { label: string; dshHome: string | undefined }[] = [
+  const cases: readonly { label: string; dshHome: string }[] = [
     { label: 'absolute override', dshHome: '/tmp/dsh-parity-absolute' },
     { label: 'relative override', dshHome: 'relative-home' },
     { label: 'tilde override', dshHome: '~/tilde-home' },
-    { label: 'blank override', dshHome: '   ' },
-    { label: 'unset override', dshHome: undefined },
   ]
 
   for (const testCase of cases) {
@@ -132,11 +130,27 @@ describe('resolveDesktopHome parity with the pinned upstream resolver', () => {
       const canonicalCwd = await realpath(cwd)
       const upstream = await resolveUpstreamInChildProcess({ cwd, dshHome: testCase.dshHome })
       const local = resolveDesktopHome({
-        env: testCase.dshHome === undefined ? {} : { DSH_HOME: testCase.dshHome },
+        env: { DSH_HOME: testCase.dshHome },
         osHome: homedir(),
         cwd: canonicalCwd,
       })
       expect(local).toBe(upstream)
     }, 20_000)
   }
+
+  it('diverges from upstream only on the default: Deskwork owns ~/.deskwork, never ~/.dsh', async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), 'dsh-home-parity-'))
+    temporaryDirectories.push(cwd)
+    const canonicalCwd = await realpath(cwd)
+    const upstream = await resolveUpstreamInChildProcess({ cwd, dshHome: undefined })
+    expect(upstream).toBe(path.join(homedir(), '.dsh'))
+    const local = resolveDesktopHome({ env: {}, osHome: homedir(), cwd: canonicalCwd })
+    expect(local).toBe(path.join(homedir(), '.deskwork'))
+  }, 20_000)
+
+  it('treats a blank DSH_HOME as unset: Deskwork default, not the upstream ~/.dsh', () => {
+    expect(
+      resolveDesktopHome({ env: { DSH_HOME: '   ' }, osHome: homedir(), cwd: '/tmp/work' }),
+    ).toBe(path.join(homedir(), '.deskwork'))
+  })
 })

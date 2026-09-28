@@ -22,7 +22,7 @@ function actionLabels(spec: readonly MenuItemSpec[]): string[] {
 }
 
 describe('application menu spec', () => {
-  const menu = buildApplicationMenuSpec({ displayName: 'DeepSeek Harness' })
+  const menu = buildApplicationMenuSpec({ displayName: 'Deskwork' })
 
   it('keeps the standard macOS About/Services/Hide, Edit, View and Window roles', () => {
     expect(roles(menu)).toEqual([
@@ -44,7 +44,7 @@ describe('application menu spec', () => {
   })
 
   it('exposes exactly one show and one quit action, named after the product', () => {
-    expect(actionLabels(menu).sort()).toEqual(['显示 DeepSeek Harness', '退出 DeepSeek Harness'])
+    expect(actionLabels(menu).sort()).toEqual(['显示 Deskwork', '退出 Deskwork'])
   })
 
   it('registers no accelerators on product actions (system Cmd+Q flows through before-quit)', () => {
@@ -72,12 +72,12 @@ describe('tray menu spec', () => {
 describe('buildAboutPanelOptions', () => {
   it('reads versions from the compatibility chain, not hand-written strings', () => {
     const options = buildAboutPanelOptions({
-      displayName: 'DeepSeek Harness',
+      displayName: 'Deskwork',
       desktopVersion: '1.2.3',
       electronVersion: '44.1.0',
     })
     expect(options).toEqual({
-      applicationName: 'DeepSeek Harness',
+      applicationName: 'Deskwork',
       applicationVersion: '1.2.3',
       version: 'Electron 44.1.0',
     })
@@ -85,7 +85,7 @@ describe('buildAboutPanelOptions', () => {
 
   it('surfaces the embedded release manifest facts as credits when present', () => {
     const options = buildAboutPanelOptions({
-      displayName: 'DeepSeek Harness',
+      displayName: 'Deskwork',
       desktopVersion: '1.2.3',
       electronVersion: '44.1.0',
       dshLine: 'DSH dsh-v0.1.2-alpha.3 (npm 0.1.2-alpha.3) · m4-1.2.3-darwin-arm64-98af342',

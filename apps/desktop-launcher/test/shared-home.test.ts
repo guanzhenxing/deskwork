@@ -22,7 +22,7 @@ describe('describeLeaseBlock', () => {
       ownerSummary:
         'entrypoint=bundled-cli profile=headless supervisor=1234 host=none createdAt=2026-09-02T00:00:00.000Z',
     })
-    expect(view.title).toBe('DeepSeek Harness 无法独占数据目录')
+    expect(view.title).toBe('Deskwork 无法独占数据目录')
     expect(view.body.join('\n')).toContain('bundled-cli')
     expect(view.body.join('\n')).toContain('不同 profile 不构成并发例外')
     expect(view.body.join('\n')).toContain('DSH_HOME')

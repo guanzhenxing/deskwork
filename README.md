@@ -1,14 +1,14 @@
-# DeepSeek Harness
+# Deskwork（案头）
 
-DeepSeek Harness 是面向 macOS 的原生 DSH 桌面壳。官方 DSH（DeepSeek Harness）Web UI 运行在原生窗口、Dock 与托盘中；产品逻辑由一个独立 DSH bundle 插件（`desktop-plugin`）承载，一个很薄的 Electron launcher 负责启动、Host 进程监督、窗口以及 Host 无法启动时仍可用的最低恢复控制面。配套 CLI `dsh-native` 与桌面端顺序共享同一个 DSH home（默认 `~/.dsh`）。
+Deskwork（案头）是基于 DeepSeek Harness（DSH）的本地 AI 工作台。官方 DSH Web UI 运行在原生窗口、Dock 与托盘中；产品逻辑由一个独立 DSH bundle 插件（`desktop-plugin`）承载，一个很薄的 Electron launcher 负责启动、Host 进程监督、窗口以及 Host 无法启动时仍可用的最低恢复控制面。配套 CLI `dsh-native` 与桌面端顺序共享同一个 Deskwork home（默认 `~/.deskwork`）。
 
-> Electron userData 目录名固定为 `DeepSeek Harness Desktop`，不随展示名变更。
+> Electron userData 目录名固定为 `Deskwork`，不随展示名变更。
 
 ## 功能特性
 
 - 官方 DSH Web UI 的原生窗口、Dock、托盘、菜单与单实例生命周期；
 - DSH Host 运行在独立 Node-capable 子进程中；Host 崩溃或启动失败时桌面壳保持存活，进入带结构化诊断的恢复窗口；
-- 默认使用 `desktop` profile 与 `~/.dsh`；桌面端与 `dsh-native` CLI 在整 home lease 下顺序共享凭据、设置、会话与 storages（双向会话接续）；
+- 默认使用 `desktop` profile 与 Deskwork 自己的 home `~/.deskwork`（不指向官方 CLI 的 `~/.dsh`）；桌面端与 `dsh-native` CLI 在整 home lease 下顺序共享凭据、设置、会话与 storages（双向会话接续）；
 - 非破坏性启动恢复：profile 走逐文件修订事务，只在修订校验通过时回滚本次自动修改，绝不自动覆盖 home 级用户数据；
 - Safe Mode：不加载正常 `desktop-plugin` 与第三方 bundle 的最小恢复会话；
 - home 兼容性准入：跨版本数据 epoch 与格式预检，未知格式与不安全降级在写入前拒绝；
@@ -17,12 +17,12 @@ DeepSeek Harness 是面向 macOS 的原生 DSH 桌面壳。官方 DSH（DeepSeek
 
 ## 重要并发限制
 
-“共享 `~/.dsh`”表示 Desktop 与 CLI 在不同时间读取同一份磁盘数据，不表示两个 DSH Host 可以同时写入该 home。
+“共享 home”表示 Desktop 与 CLI 在不同时间读取同一份 Deskwork home（默认 `~/.deskwork`）的磁盘数据，不表示两个 DSH Host 可以同时写入该 home。
 
 受支持的入口遵循整份 home 单 Host 规则：
 
 - Desktop 运行时，`dsh-native` 的 boot 与 `plugin` 变更会被 home lease 拒绝（退出码 3）；反之亦然；不同 profile 不构成例外；
-- `dsh-native` 是唯一受本项目支持并遵守 lease 的 CLI；其他裸 `dsh` 不经过本项目拦截，使用前必须完全退出 Desktop 与 `dsh-native`；
+- `dsh-native` 是唯一受本项目支持并遵守 lease 的 CLI；官方裸 `dsh` 默认使用它自己的 `~/.dsh`，与 Deskwork home 互不相干，也不经过本项目拦截；
 - 残留锁用 `dsh-native doctor --unlock` 在确认无活跃 owner 后清理；
 - 长期路线是一个 Host 被 Electron、本地 CLI 和授权远程客户端复用，见[路线图](docs/roadmap.md)。
 
@@ -60,7 +60,7 @@ corepack pnpm@11.7.0 package:dmg
 ## 使用
 
 ```bash
-# CLI（与桌面端顺序共享 ~/.dsh）
+# CLI（与桌面端顺序共享 ~/.deskwork）
 corepack pnpm@11.7.0 dsh-native -- --profile web "..."
 corepack pnpm@11.7.0 dsh-native -- doctor --unlock   # 确认无活跃 owner 后清理残留锁
 ```

@@ -58,7 +58,7 @@ async function main() {
       `archived DMG digest ${dmgDigest.slice(0, 12)} != recorded ${record.sha256.slice(0, 12)}`,
     )
   }
-  const install = await installFromDmg(dmgPath, 'DeepSeek Harness')
+  const install = await installFromDmg(dmgPath, 'Deskwork')
 
   const embeddedManifest = await readJson(
     path.join(install.appPath, 'Contents', 'Resources', 'compatibility.json'),
