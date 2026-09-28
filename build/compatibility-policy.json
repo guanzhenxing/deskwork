@@ -2,93 +2,16 @@
   "schemaVersion": 1,
   "$comment": "Tested compatibility policy for DeepSeek Harness Desktop releases. Every formats[] row must be backed by evidence the verify:compatibility gate can machine-check: npm:<pkg>@<version>:<file-inside-package> must exist in the installed store, fixture:<repo-path> must hash to the pinned sha256, upstream:<commit> must equal the DSH baseline commit, repo:<repo-path> must exist in this repository. Unknown formats must never be added without that evidence.",
   "dataEpoch": 1,
-  "supportedDataEpochs": [1],
+  "supportedDataEpochs": [
+    1
+  ],
   "pluginApi": {
     "strategy": "verified-exact-baseline",
-    "singletonPackages": ["react", "@deepseek-ai/cordis", "@deepseek-ai/dsh"]
+    "singletonPackages": [
+      "react",
+      "@deepseek-ai/cordis",
+      "@deepseek-ai/dsh"
+    ]
   },
-  "formats": [
-    {
-      "provider": "@deepseek-ai/dsh-credentials-local",
-      "providerVersion": "0.1.2-rc.1",
-      "formatId": "dsh-credentials-file-1",
-      "readable": ["dsh-credentials-file-1"],
-      "writable": "dsh-credentials-file-1",
-      "evidence": [
-        "npm:@deepseek-ai/dsh-credentials-local@0.1.2-rc.1:lib/index.js",
-        "fixture:tests/fixtures/home-formats/credentials-records.yaml#f75eb708888b7457fc5d58f4b36739d4afa29bac5ef2100d2e02f052a4fdfa18",
-        "fixture:tests/fixtures/home-formats/credentials.yaml#3834614b05eff66d5abded116f263c068483dc5175f4ea46a39ecba980091907",
-        "upstream:a66e4702047846cdaa10c66c9d3df3951f5ea70d"
-      ],
-      "$notes": "<home>/.credentials.yaml carries an upstream-defined `version: 1` header; this baseline writes two known sections — `refs:` (API-key references, dsh-credentials-local) and `records:` (connection grants written by the desktop Host). The pre-release flat layout is refused by the provider itself."
-    },
-    {
-      "provider": "@deepseek-ai/dsh-settings-file",
-      "providerVersion": "0.1.2-rc.1",
-      "formatId": "dsh-settings-file-0.1.2-rc.1",
-      "readable": ["dsh-settings-file-0.1.2-alpha.3", "dsh-settings-file-0.1.2-rc.1"],
-      "writable": "dsh-settings-file-0.1.2-rc.1",
-      "evidence": [
-        "npm:@deepseek-ai/dsh-settings-file@0.1.2-rc.1:lib/index.js",
-        "fixture:tests/fixtures/home-formats/settings.yaml#db74b2ddfc5f2e203738be3ccac319a727369c716aa8b2374654dab5f2059be7",
-        "upstream:a66e4702047846cdaa10c66c9d3df3951f5ea70d"
-      ],
-      "$notes": "<home>/settings.yaml (or .json) is a schemastery-validated document with NO upstream numeric schema version; the provider build itself is the format identity. No schema version is fabricated. The rule also reads the predecessor-build ID: these documents carry no upstream numeric schema, so a home whose marker records the alpha.3 build crosses this release inside one rule instead of being refused."
-    },
-    {
-      "provider": "@deepseek-ai/dsh-session-persistence-jsonl",
-      "providerVersion": "0.1.2-rc.1",
-      "formatId": "dsh-session-jsonl-0",
-      "readable": ["dsh-session-jsonl-0"],
-      "writable": "dsh-session-jsonl-0",
-      "evidence": [
-        "npm:@deepseek-ai/dsh-session-persistence-jsonl@0.1.2-rc.1:lib/index.js",
-        "npm:@deepseek-ai/dsh-session@0.1.2-rc.1:lib/index.js",
-        "fixture:tests/fixtures/home-formats/session-header.jsonl#f604fcd4eea827ad07c05967766a9136af6ad8d9deb0d70092e5e989ed55bc85",
-        "upstream:a66e4702047846cdaa10c66c9d3df3951f5ea70d"
-      ],
-      "$notes": "First line of session.jsonl / session.jsonl.zstd is a {type:'session',version:N} header; this baseline writes SESSION_FORMAT_VERSION=0 and refuses headers carrying retired policy fields. .zstd files are multi-frame."
-    },
-    {
-      "provider": "@deepseek-ai/dsh-storage-json",
-      "providerVersion": "0.1.2-rc.1",
-      "formatId": "dsh-storage-unit-0.1.2-rc.1",
-      "readable": ["dsh-storage-unit-0.1.2-alpha.3", "dsh-storage-unit-0.1.2-rc.1"],
-      "writable": "dsh-storage-unit-0.1.2-rc.1",
-      "evidence": [
-        "npm:@deepseek-ai/dsh-storage-json@0.1.2-rc.1:lib/index.js",
-        "npm:@deepseek-ai/dsh-storage-domain@0.1.2-rc.1:lib/index.js",
-        "fixture:tests/fixtures/home-formats/storage-unit-single.json#77f214e92930f98e6ed4ada6cd48f87ac4d41f85709d84575401cb1c5717a82b",
-        "upstream:a66e4702047846cdaa10c66c9d3df3951f5ea70d"
-      ],
-      "$notes": "Single-layout units are one document with a nested {unit:{name,version}} header; per-record units are directories of {version,record} documents (global.json carries the unit version stamp) plus the domain identity from the directory name. Per-domain versions are declared by the owning package and checked with version-mismatch refusal. The rule also reads the predecessor-build ID: these documents carry no upstream numeric schema, so a home whose marker records the alpha.3 build crosses this release inside one rule instead of being refused."
-    },
-    {
-      "provider": "@deepseek-ai/dsh-session-projection-cache",
-      "providerVersion": "0.1.2-rc.1",
-      "formatId": "dsh-session-projcache-5",
-      "readable": ["dsh-session-projcache-4", "dsh-session-projcache-5"],
-      "writable": "dsh-session-projcache-5",
-      "evidence": [
-        "npm:@deepseek-ai/dsh-session-projection-cache@0.1.2-rc.1:lib/index.js",
-        "fixture:tests/fixtures/home-formats/projcache-unit.json#de4b07ee998d8e17a2d9156767e7b5a4fcf81d6316dab9ed83c1516133a86f33",
-        "fixture:tests/fixtures/home-formats/projcache-unit-v5.json#ae3a3cd053ea11d18edf79c6107215e1e956cbe7f8b7a35be9f6b36be098a8a8",
-        "upstream:a66e4702047846cdaa10c66c9d3df3951f5ea70d"
-      ],
-      "$notes": "The session_projcache storage domain is declared at version 5 (per-record layout) by the rc.1 writer, which also declares versions 3 and 4 readable upstream; this policy reads existing v4 records and writes v5, so a home may mix v4/v5 per-session records and the domain identity is the newest stamp present. The cache is derived data — the v5 bump does not raise the data epoch, and a predecessor release that reads only v4 still refuses a v5 cache."
-    },
-    {
-      "provider": "@deepseek-ai/dsh",
-      "providerVersion": "0.1.2-rc.1",
-      "formatId": "dsh-profile-manifest-0.1.2-rc.1",
-      "readable": ["dsh-profile-manifest-0.1.2-alpha.3", "dsh-profile-manifest-0.1.2-rc.1"],
-      "writable": "dsh-profile-manifest-0.1.2-rc.1",
-      "evidence": [
-        "repo:packages/profile-manager/src/reconcile-templates.ts",
-        "fixture:tests/fixtures/home-formats/profile-package.json#d193ec18a8a948d68b31cd4bc0217cf1659e198cbd591e8d8c0c177621710a9c",
-        "upstream:a66e4702047846cdaa10c66c9d3df3951f5ea70d"
-      ],
-      "$notes": "A profile directory is a package.json manifest (dsh.profile.bundles) plus cordis.patch.yml plus pnpm-workspace.yaml. The manifest template is app-owned (profile-manager) and pinned to this baseline; the patch layer is the user's. The rule also reads the predecessor-build ID: these documents carry no upstream numeric schema, so a home whose marker records the alpha.3 build crosses this release inside one rule instead of being refused."
-    }
-  ]
+  "formats": []
 }

@@ -2,20 +2,20 @@
   "schemaVersion": 1,
   "$comment": "Provenance of the pinned upstream runtime artifacts shipped in a DeepSeek Harness Desktop candidate. The DSH runtime is consumed as official npm publishes of the pinned upstream tag — no forks, no local patches. See docs/upstream-baseline.md.",
   "dsh": {
-    "tag": "dsh-v0.1.2-rc.1",
-    "commit": "a66e4702047846cdaa10c66c9d3df3951f5ea70d",
-    "npmVersion": "0.1.2-rc.1",
+    "tag": "dsh-v0.1.7-rc.2",
+    "commit": "477b4f420553e8a52c2fbccc464d7561b239c443",
+    "npmVersion": "0.1.7-rc.2",
     "source": "npm-registry",
     "evidence": [
-      "https://github.com/deepseek-ai/deepseek-harness/tree/dsh-v0.1.2-rc.1",
-      "https://github.com/deepseek-ai/deepseek-harness/commit/a66e4702047846cdaa10c66c9d3df3951f5ea70d"
+      "https://github.com/deepseek-ai/deepseek-harness/tree/dsh-v0.1.7-rc.2",
+      "https://github.com/deepseek-ai/deepseek-harness/commit/477b4f420553e8a52c2fbccc464d7561b239c443"
     ],
     "packages": [
       {
         "name": "@deepseek-ai/dsh",
-        "version": "0.1.2-rc.1",
-        "integrity": "sha512-RPq48TzxvwpdT9/7W1tbhZDBMmeK+bxDrX9cqQC27Wx/LqtgJF8PSa3b3xriU8oxtvhwYmk21w2cej3uMQrnVA==",
-        "tarball": "https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-0.1.2-rc.1.tgz"
+        "version": "0.1.7-rc.2",
+        "integrity": "sha512-SQFhriLvza8GnFApnC5/32AgpcyKxrWnYXhvwDOLJdgWpkCX2EexyR9c8kCkMITJXnFLEN3Qb2CEh0W36vkLyw==",
+        "tarball": "https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-0.1.7-rc.2.tgz"
       }
     ],
     "closurePolicy": "every @deepseek-ai/dsh* package in the lockfile must resolve to this exact npmVersion; verify:dsh-closure enforces it against the lockfile and the staged trees",
@@ -30,7 +30,7 @@
     "independentPackages": [
       {
         "name": "@deepseek-ai/cordis",
-        "version": "4.0.2",
+        "version": "4.0.4",
         "note": "Cordis versioning is independent of DSH releases; it is classified separately and never inferred from the @deepseek-ai scope"
       },
       {

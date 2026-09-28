@@ -197,9 +197,6 @@ describe('real DSH Host runner', () => {
       leaseGeneration: 'lease-generation-1',
       hostIdentity: { pid: process.pid, startIdentity: 'integration-host' },
       transport: new LoopbackTransport('c'.repeat(43), 'lease-generation-1'),
-      productInstallAnchor: fileURLToPath(
-        new URL('../../../apps/desktop-launcher/package.json', import.meta.url),
-      ),
     })
     try {
       expect(await readFile(marker, 'utf8')).toBe('loaded')
@@ -245,9 +242,6 @@ describe('real DSH Host runner', () => {
         leaseGeneration: 'lease-generation-1',
         hostIdentity: { pid: process.pid, startIdentity: 'integration-host' },
         transport: new LoopbackTransport('c'.repeat(43), 'lease-generation-1'),
-        productInstallAnchor: fileURLToPath(
-          new URL('../../../apps/desktop-launcher/package.json', import.meta.url),
-        ),
       }),
     ).rejects.toThrow(/symlink/u)
     expect(await readdir(external)).toEqual([])
@@ -267,9 +261,6 @@ describe('real DSH Host runner', () => {
       leaseGeneration: 'lease-generation-1',
       hostIdentity: { pid: process.pid, startIdentity: 'integration-host' },
       transport: new LoopbackTransport('c'.repeat(43), 'lease-generation-1'),
-      productInstallAnchor: fileURLToPath(
-        new URL('../../../apps/desktop-launcher/package.json', import.meta.url),
-      ),
     })
     const profiles = path.join(home, 'profiles')
     const name = (await readdir(profiles)).find((entry) => entry.startsWith('.dsh-desktop-run-'))!
@@ -294,9 +285,6 @@ describe('real DSH Host runner', () => {
       home,
       profileName: 'desktop',
       mode: 'normal',
-      productInstallAnchor: fileURLToPath(
-        new URL('../../../apps/desktop-launcher/package.json', import.meta.url),
-      ),
       capability,
       leaseGeneration,
       hostIdentity: { pid: process.pid, startIdentity: 'integration-host' },

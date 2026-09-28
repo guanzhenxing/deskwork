@@ -14,7 +14,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@deepseek-ai/dsh": "0.1.2-rc.1",
+    "@deepseek-ai/dsh": "0.1.7-rc.2",
     "@dsh-desktop/home-lease": "workspace:*",
     "@dsh-desktop/product-config": "workspace:*",
     "@dsh-desktop/release-compatibility": "workspace:*"

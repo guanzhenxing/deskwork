@@ -302,8 +302,15 @@ export async function listSessions(home) {
     for (const session of await readdir(path.join(root, project.name), {
       withFileTypes: true,
     })) {
-      const file = path.join(root, project.name, session.name, 'session.jsonl')
-      const content = await readFile(file, 'utf8').catch(() => undefined)
+      const sessionDir = path.join(root, project.name, session.name)
+      // The engine names session files by their format version (v4 in the
+      // rc.2 baseline); fall back to the plain name for older-engine homes.
+      let file = path.join(sessionDir, 'session.v4.jsonl')
+      let content = await readFile(file, 'utf8').catch(() => undefined)
+      if (content === undefined) {
+        file = path.join(sessionDir, 'session.jsonl')
+        content = await readFile(file, 'utf8').catch(() => undefined)
+      }
       if (content === undefined) continue
       const nonEmpty = content.split('\n').filter(Boolean)
       const lines = nonEmpty

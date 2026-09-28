@@ -1,5 +1,3 @@
-import { fileURLToPath } from 'node:url'
-
 import type { HostBootstrap } from '@dsh-desktop/host-supervisor'
 import { runDshHost, type HostControlTransport } from '@dsh-desktop/host-supervisor/host-runner'
 import { assertBootProfile, type BootMode } from '@dsh-desktop/host-supervisor/boot-profile'
@@ -74,7 +72,6 @@ async function main(): Promise<void> {
   }
   const host = await runDshHost({
     ...bootstrap,
-    productInstallAnchor: fileURLToPath(new URL('../package.json', import.meta.url)),
     hostIdentity: { pid: process.pid, startIdentity: bootstrap.startIdentity },
     transport,
   })

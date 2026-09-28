@@ -74,7 +74,6 @@ describe.skipIf(!helperAvailable)('safe mode boot', () => {
       leaseGeneration: lease.generation,
       hostIdentity: { pid: process.pid, startIdentity: 'safe-integration' },
       transport: transport.transport,
-      productInstallAnchor: path.join(fixture.userData, 'anchor.json'),
       installAnchor: path.join(fixture.userData, 'anchor.json'),
     })
     const kinds = transport.messages.map(
@@ -96,7 +95,6 @@ describe.skipIf(!helperAvailable)('safe mode boot', () => {
         leaseGeneration: lease.generation,
         hostIdentity: { pid: process.pid, startIdentity: 'safe-integration' },
         transport: buildTransport(lease.generation).transport,
-        productInstallAnchor: path.join(fixture.userData, 'anchor.json'),
         installAnchor: path.join(fixture.userData, 'anchor.json'),
       }),
     ).rejects.toThrow(/boot profile invalid/u)
@@ -133,7 +131,6 @@ describe.skipIf(!helperAvailable)('safe mode boot', () => {
         leaseGeneration: lease.generation,
         hostIdentity: { pid: process.pid, startIdentity: 'safe-home-patch' },
         transport: buildTransport(lease.generation).transport,
-        productInstallAnchor: anchor,
         installAnchor: anchor,
       }),
     ).rejects.toThrow()
@@ -193,7 +190,6 @@ describe.skipIf(!helperAvailable)('safe mode boot', () => {
       leaseGeneration: lease.generation,
       hostIdentity: { pid: process.pid, startIdentity: 'safe-patch-boundary' },
       transport: transport.transport,
-      productInstallAnchor: anchor,
       installAnchor: anchor,
     })
     const kinds = transport.messages.map(

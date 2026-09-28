@@ -161,8 +161,11 @@ function parsePluginApi(value: unknown, dshNpmVersion: string): ReleaseManifest[
 }
 
 function parseFormats(value: unknown): readonly FormatRule[] {
-  if (!Array.isArray(value) || value.length === 0) {
-    throw new ManifestSchemaError('formats must be a non-empty array')
+  // An empty formats list is the state since Deskwork dropped cross-product
+  // format admission: the marker's schemaVersion and data epoch are the only
+  // admission facts, so no per-format rules are declared or verified.
+  if (!Array.isArray(value)) {
+    throw new ManifestSchemaError('formats must be an array')
   }
   return value.map((entry, index) => {
     if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {

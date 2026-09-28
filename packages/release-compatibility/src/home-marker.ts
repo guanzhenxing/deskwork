@@ -13,12 +13,7 @@ import {
   readHomeCompatibilityMarker,
   type HomeCompatibilityMarker,
 } from './home-admission.js'
-import { inspectHomeFormats, type HomeFormatState } from './inspect-home.js'
 import { parseReleaseManifest, type ReleaseManifest } from './manifest.js'
-import { preflightHome, type PreflightResult } from './preflight.js'
-
-export { describePreflightRefusal } from './preflight.js'
-export type { PreflightResult } from './preflight.js'
 
 /** The unified verdict every supported entrypoint acts on. */
 export type HomePreflightVerdict =
@@ -28,6 +23,19 @@ export type HomePreflightVerdict =
   | 'unknown-format'
   | 'unreadable-format'
   | 'migration-required'
+
+/**
+ * The allow decision the chain hands to the marker reservation. Since
+ * cross-product format admission was dropped, the formats map is always
+ * empty: the marker records only the epoch facts. `unknown-format` and
+ * `unreadable-format` stay in the verdict union for the launcher's failure
+ * classification, but the minimal chain never produces them.
+ */
+export type HomeAdmissionAllowance = Readonly<{
+  kind: 'allow'
+  dataEpoch: number
+  formats: Readonly<Record<string, string>>
+}>
 
 async function syncDirectory(dirname: string): Promise<void> {
   const handle = await open(dirname, 'r')
@@ -84,7 +92,7 @@ export async function reserveHomeWrite(input: {
   home: string
   lease: HomeLease
   release: ReleaseManifest
-  decision: Extract<PreflightResult, { kind: 'allow' }>
+  decision: HomeAdmissionAllowance
 }): Promise<void> {
   if (input.lease.home !== input.home) {
     throw new HomeAdmissionError(
@@ -118,11 +126,14 @@ export async function reserveHomeWrite(input: {
 }
 
 /**
- * The full admission chain every supported entrypoint runs in a fixed order:
- * parse marker → inspect (read-only) → preflight → reserveHomeWrite. Call it
- * after the lease is acquired (or with `reserve: false` on the lease-less
- * read-only passthrough paths) and before any profile/cache/Host write.
- * Read failures throw `HomeAdmissionError` and must be treated as refusals.
+ * The admission chain every supported entrypoint runs: parse the marker and
+ * check its schema version and data epoch, then reserve the write epoch.
+ * Since cross-product format admission was dropped, no on-disk format
+ * inspection happens: the marker's own facts are the only admission input.
+ * Call it after the lease is acquired (or with `reserve: false` on the
+ * lease-less read-only passthrough paths) and before any profile/cache/Host
+ * write. Read failures throw `HomeAdmissionError` and must be treated as
+ * refusals.
  */
 export async function runHomeCompatibilityChain(input: {
   home: string
@@ -143,26 +154,21 @@ export async function runHomeCompatibilityChain(input: {
   }
   const marker =
     raw === null ? null : (parseHomeCompatibilityMarker(raw) as HomeCompatibilityMarker)
-  const observed: HomeFormatState = await inspectHomeFormats(input.home)
-  const result = preflightHome({ release: input.release, marker, observed })
-  if (result.kind === 'refuse') {
-    switch (result.code) {
-      case 'UNSUPPORTED_EPOCH':
-        return 'unsupported-data'
-      case 'UNKNOWN_FORMAT':
-        return 'unknown-format'
-      case 'UNREADABLE_FORMAT':
-        return 'unreadable-format'
-      case 'MIGRATION_REQUIRED':
-        return 'migration-required'
-    }
+  // Epoch decision order matches the compatibility protocol: a newer epoch is
+  // data this release must not downgrade onto; an older supported epoch needs
+  // a migration this release does not perform automatically.
+  if (marker !== null && !input.release.supportedDataEpochs.includes(marker.dataEpoch)) {
+    return 'unsupported-data'
+  }
+  if (marker !== null && marker.dataEpoch < input.release.dataEpoch) {
+    return 'migration-required'
   }
   if (input.reserve) {
     await reserveHomeWrite({
       home: input.home,
       lease: input.lease!,
       release: input.release,
-      decision: result,
+      decision: { kind: 'allow', dataEpoch: input.release.dataEpoch, formats: {} },
     })
   }
   return 'allow'

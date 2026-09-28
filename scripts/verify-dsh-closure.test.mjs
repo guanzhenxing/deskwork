@@ -164,11 +164,11 @@ test('patch ledger validation accepts the explicit empty ledger and refuses malf
   assert.match(staleUpstream.problems[0], /not the baseline/)
 })
 
-test('the repository declares exactly the qualified rc.1 upstream baseline', () => {
+test('the repository declares exactly the qualified upstream baseline', () => {
   const expectedDshBaseline = Object.freeze({
-    tag: 'dsh-v0.1.2-rc.1',
-    commit: 'a66e4702047846cdaa10c66c9d3df3951f5ea70d',
-    npmVersion: '0.1.2-rc.1',
+    tag: 'dsh-v0.1.7-rc.2',
+    commit: '477b4f420553e8a52c2fbccc464d7561b239c443',
+    npmVersion: '0.1.7-rc.2',
   })
   const artifacts = JSON.parse(
     readFileSync(new URL('../build/upstream-artifacts.json', import.meta.url), 'utf8'),
@@ -184,7 +184,7 @@ test('the repository declares exactly the qualified rc.1 upstream baseline', () 
       npmVersion: artifacts.dsh.npmVersion,
     },
     expectedDshBaseline,
-    'build/upstream-artifacts.json must pin the qualified rc.1 baseline',
+    'build/upstream-artifacts.json must pin the qualified upstream baseline',
   )
   assert.deepEqual(
     {
@@ -193,7 +193,7 @@ test('the repository declares exactly the qualified rc.1 upstream baseline', () 
       npmVersion: compatibility.dsh.npmVersion,
     },
     expectedDshBaseline,
-    'docs/compatibility.json must pin the qualified rc.1 baseline',
+    'docs/compatibility.json must pin the qualified upstream baseline',
   )
   assert.ok(artifacts.dsh.packages.length > 0, 'the ledger must own at least one package record')
   for (const entry of artifacts.dsh.packages) {

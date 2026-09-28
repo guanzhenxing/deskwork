@@ -19,6 +19,6 @@
     "@dsh-desktop/shell-core": "workspace:*"
   },
   "devDependencies": {
-    "electron": "44.1.0"
+    "electron": "44.0.0"
   }
 }

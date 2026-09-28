@@ -7,9 +7,11 @@ import path from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import {
   boot,
-  healProfilesModuleFallback,
+  createRuntimeResolution,
   loadOptionalPatches,
   loadProfile,
+  PluginPackages,
+  type RuntimeResolution,
 } from '@deepseek-ai/dsh-app-boot'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import {
@@ -44,7 +46,6 @@ export type RunDshHostOptions = Readonly<{
   leaseGeneration: string
   hostIdentity: HostIdentity
   transport: HostControlTransport
-  productInstallAnchor: string
   installAnchor?: string
   acceptTimeoutMs?: number
 }>
@@ -144,6 +145,7 @@ export async function runDshHost(options: RunDshHostOptions): Promise<DshHostHan
   let disposePromise: Promise<void> | undefined
   let surfaceId: string | undefined
   let runtimeRoot: RuntimeRoot | undefined
+  let runtimeResolution: RuntimeResolution | undefined
   let originalDshHome = process.env.DSH_HOME
   const originalCwd = process.cwd()
 
@@ -257,16 +259,12 @@ export async function runDshHost(options: RunDshHostOptions): Promise<DshHostHan
 
     const installAnchor = options.installAnchor ?? DSH_INSTALL_ANCHOR
     // Named boot stages, classified at the capture site: runtime resolution
-    // (neutral launch root, fallback healing, bundle projections), profile
-    // resolution, home patch parsing, the Cordis boot itself, and surface
-    // publication. Attribution no stage can make stays BOOT_FAILED/unknown.
+    // (neutral launch root, in-process module interception, bundle
+    // projections), profile resolution, home patch parsing, the Cordis boot
+    // itself, and surface publication. Attribution no stage can make stays
+    // BOOT_FAILED/unknown.
     await staged('resolve-runtime', 'RUNTIME_UNAVAILABLE', true, async () => {
       runtimeRoot = await createRuntimeRoot(options.home)
-      // Product composition belongs to the caller. These shared fallbacks only
-      // mirror the two installed closures; neither writes the named profile.
-      for (const anchor of new Set([installAnchor, options.productInstallAnchor])) {
-        await healProfilesModuleFallback({ installAnchor: anchor, home: options.home })
-      }
     })
     if (runtimeRoot === undefined) throw new Error('launch root was not created')
     const launchDir = runtimeRoot.dir
@@ -284,9 +282,13 @@ export async function runDshHost(options: RunDshHostOptions): Promise<DshHostHan
     const rootConfigPath = path.join(launchDir, PROFILE_ROOT_FILENAME)
     await staged('resolve-runtime', 'RUNTIME_UNAVAILABLE', true, async () => {
       // Keep the transient Cordis root outside the named profile while retaining
-      // Node's parent-directory lookup for the shared profiles/node_modules fallback.
+      // Node's parent-directory lookup through the launch root's node_modules.
       await writeFile(rootConfigPath, PROFILE_ROOT_CONFIG, { mode: 0o600 })
-      await healProfilesModuleFallback({
+      // Upstream replaced on-disk module-resolution fallbacks with an
+      // in-process interception: compute the launch root's resolution here
+      // (mirroring the official profile boot) and install it through the
+      // PluginPackages service in the boot prepare callback below.
+      runtimeResolution = await createRuntimeResolution({
         installAnchor,
         profile: { ...profile, dir: launchDir },
         home: options.home,
@@ -342,11 +344,13 @@ export async function runDshHost(options: RunDshHostOptions): Promise<DshHostHan
     }
 
     context = await staged('boot', 'BOOT_FAILED', true, () =>
-      boot('dsh-desktop', rootConfigPath, patches, (hostContext) => {
+      boot('dsh-desktop', rootConfigPath, patches, async (hostContext) => {
         context = hostContext
         contextReady.resolve(hostContext)
         hostContext.provide('desktopSurface', desktopSurface)
         hostContext.provide(DSH_LAUNCH_ENVIRONMENT_KEY, environment)
+        if (runtimeResolution === undefined) throw new Error('runtime resolution was not computed')
+        await hostContext.plugin(PluginPackages, { resolution: runtimeResolution })
         provideCmdline(hostContext, {
           args: ['--host', '127.0.0.1', '--port', '0', '--no-open'],
           exit: () => void disposeHost(false),
