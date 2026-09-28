@@ -63,7 +63,7 @@ function doctorProbe() {
 async function runDoctor(home: string): Promise<{ code: number; stderr: string }> {
   const stderr = new MemoryStderr()
   const code = await runBundledCli(['doctor', '--unlock'], {
-    env: { DSH_HOME: home },
+    env: { DESKWORK_HOME: home },
     probe: doctorProbe(),
     stderr,
     spawnChild: () => {

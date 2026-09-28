@@ -29,7 +29,7 @@ export function describeLeaseBlock(input: {
   } else {
     lines.push('如需诊断锁状态，可运行：')
   }
-  lines.push('自定义 home 的入口必须使用相同的 DSH_HOME。')
+  lines.push('自定义 home 的入口必须使用相同的 DESKWORK_HOME。')
   return Object.freeze({
     title: `${PRODUCT.displayName} 无法独占数据目录`,
     body: Object.freeze(lines),

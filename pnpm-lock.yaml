@@ -129,10 +129,6 @@ importers:
       '@dsh-desktop/desktop-contracts':
         specifier: workspace:*
         version: link:../desktop-contracts
-    devDependencies:
-      '@deepseek-ai/dsh-home-paths':
-        specifier: 0.1.7-rc.2
-        version: 0.1.7-rc.2(@deepseek-ai/cordis@4.0.4)
 
   packages/host-supervisor:
     dependencies:

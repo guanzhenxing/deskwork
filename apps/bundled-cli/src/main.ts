@@ -462,7 +462,7 @@ export async function runBundledCli(
       stderr.write(
         `dsh-native: cannot use this home (${error.code}): ${error.message}\n` +
           (error.ownerSummary !== undefined ? `dsh-native: owner ${error.ownerSummary}\n` : '') +
-          'dsh-native: entries of a custom home must use the same DSH_HOME; run dsh-native doctor --unlock for stale locks\n',
+          'dsh-native: entries of a custom home must use the same DESKWORK_HOME; run dsh-native doctor --unlock for stale locks\n',
       )
       return 3
     }

@@ -288,7 +288,7 @@ describe('bundled CLI lease watchdog', () => {
       return handle
     }
     const running = runBundledCli(['--profile', 'headless', 'task'], {
-      env: { DSH_HOME: home },
+      env: { DESKWORK_HOME: home },
       probe: fakeProbe,
       guard: createInProcessGuardLock(),
       spawnChild: spawn,
@@ -337,7 +337,7 @@ describe('runBundledCli', () => {
       return makeFakeChild(0).spawn(input)
     }
     const code = await runBundledCli(['plugin', '--profile', 'desktop', 'add', '@example/a'], {
-      env: { DSH_HOME: home },
+      env: { DESKWORK_HOME: home },
       probe: fakeProbe,
       guard: createInProcessGuardLock(),
       spawnChild: spawn,
@@ -368,7 +368,7 @@ describe('runBundledCli', () => {
     const stderr = new MemoryStderr()
     let spawns = 0
     const code = await runBundledCli(['plugin', '--profile', 'desktop', 'add', '@example/a'], {
-      env: { DSH_HOME: home },
+      env: { DESKWORK_HOME: home },
       probe: fakeProbe,
       guard: createInProcessGuardLock(),
       spawnChild: (input) => {
@@ -386,7 +386,7 @@ describe('runBundledCli', () => {
     await mkdir(path.join(corruptHome, 'run'), { recursive: true })
     await writeFile(path.join(corruptHome, 'run', 'compatibility.json'), '{broken', 'utf8')
     const secondCode = await runBundledCli(['--profile', 'headless', 'work'], {
-      env: { DSH_HOME: corruptHome },
+      env: { DESKWORK_HOME: corruptHome },
       probe: fakeProbe,
       guard: createInProcessGuardLock(),
       spawnChild: (input) => {
@@ -416,7 +416,7 @@ describe('runBundledCli', () => {
     const stderr = new MemoryStderr()
     let spawns = 0
     const code = await runBundledCli(['--help'], {
-      env: { DSH_HOME: home },
+      env: { DESKWORK_HOME: home },
       probe: fakeProbe,
       guard: createInProcessGuardLock(),
       stderr,
@@ -452,7 +452,7 @@ describe('runBundledCli', () => {
     const code = await runBundledCli(
       ['plugin', '--profile', 'desktop', 'add', '@example/a', 'with space', '--', '--patch'],
       {
-        env: { DSH_HOME: home },
+        env: { DESKWORK_HOME: home },
         probe: fakeProbe,
         guard: createInProcessGuardLock(),
         spawnChild: spawn,
@@ -500,7 +500,7 @@ describe('runBundledCli', () => {
     const stderr = new MemoryStderr()
     const child = makeFakeChild(0)
     const code = await runBundledCli(['--profile', 'headless', 'do', 'work'], {
-      env: { DSH_HOME: home },
+      env: { DESKWORK_HOME: home },
       probe: fakeProbe,
       guard: createInProcessGuardLock(),
       spawnChild: child.spawn,
@@ -510,7 +510,7 @@ describe('runBundledCli', () => {
     expect(child.forwarded()).toEqual([])
     expect(stderr.text()).toContain('HOME_BUSY')
     expect(stderr.text()).toContain('doctor --unlock')
-    expect(stderr.text()).toContain('DSH_HOME')
+    expect(stderr.text()).toContain('DESKWORK_HOME')
     await other.release()
   })
 
@@ -518,7 +518,7 @@ describe('runBundledCli', () => {
     const home = await isolatedHome()
     const child = makeFakeChild(1)
     const code = await runBundledCli([], {
-      env: { DSH_HOME: home },
+      env: { DESKWORK_HOME: home },
       probe: fakeProbe,
       guard: createInProcessGuardLock(),
       spawnChild: child.spawn,
@@ -533,7 +533,7 @@ describe('runBundledCli', () => {
     const home = await isolatedHome()
     const child = makeFakeChild(7)
     const code = await runBundledCli(['--profile', 'headless', 'run'], {
-      env: { DSH_HOME: home },
+      env: { DESKWORK_HOME: home },
       probe: fakeProbe,
       guard: createInProcessGuardLock(),
       spawnChild: child.spawn,
@@ -566,7 +566,7 @@ describe('runBundledCli', () => {
       },
     }
     const code = await runBundledCli(['--profile', 'headless', 'task'], {
-      env: { DSH_HOME: home },
+      env: { DESKWORK_HOME: home },
       probe: brokenProbe,
       guard: createInProcessGuardLock(),
       spawnChild: spawn,
@@ -586,7 +586,7 @@ describe('runBundledCli', () => {
     let probes = 0
     const groupKills: string[] = []
     const code = await runBundledCli(['--profile', 'headless', 'run'], {
-      env: { DSH_HOME: home },
+      env: { DESKWORK_HOME: home },
       probe: fakeProbe,
       guard: createInProcessGuardLock(),
       spawnChild: child.spawn,
@@ -613,7 +613,7 @@ describe('runBundledCli', () => {
     const stderr = new MemoryStderr()
     const groupKills: string[] = []
     const code = await runBundledCli(['--profile', 'headless', 'run'], {
-      env: { DSH_HOME: home },
+      env: { DESKWORK_HOME: home },
       probe: fakeProbe,
       guard: createInProcessGuardLock(),
       spawnChild: child.spawn,
@@ -642,7 +642,7 @@ describe('runBundledCli', () => {
     }
     await expect(
       runBundledCli(['--profile', 'headless', 'task'], {
-        env: { DSH_HOME: home },
+        env: { DESKWORK_HOME: home },
         probe: brokenProbe,
         guard: createInProcessGuardLock(),
         spawnChild: child.spawn,
@@ -670,7 +670,7 @@ describe('runBundledCli', () => {
     })
     const stderr = new MemoryStderr()
     const code = await runBundledCli(['doctor', '--unlock'], {
-      env: { DSH_HOME: home },
+      env: { DESKWORK_HOME: home },
       probe: fakeProbe,
       guard: createInProcessGuardLock(),
       spawnChild: makeFakeChild(0).spawn,
@@ -713,7 +713,7 @@ describe('runBundledCli', () => {
     // Simulate the wrapper dying without releasing.
     const stderr = new MemoryStderr()
     const code = await runBundledCli(['doctor', '--unlock'], {
-      env: { DSH_HOME: home },
+      env: { DESKWORK_HOME: home },
       probe: staleProbe,
       guard: createInProcessGuardLock(),
       spawnChild: makeFakeChild(0).spawn,

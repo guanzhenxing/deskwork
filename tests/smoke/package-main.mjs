@@ -609,7 +609,7 @@ function cliVersionScenario(install) {
   return async () => {
     const cwd = await mkdtemp(path.join(tmpdir(), 'dsh-cli-cwd-'))
     // An isolated empty home: the passthrough admission must never resolve —
-    // and therefore never read — the user's real ~/.dsh (an unset DSH_HOME
+    // and therefore never read — the user's real ~/.dsh (an unset DESKWORK_HOME
     // makes the bundled CLI fall back to it).
     const home = await mkdtemp(path.join(tmpdir(), 'dsh-cli-home-'))
     try {

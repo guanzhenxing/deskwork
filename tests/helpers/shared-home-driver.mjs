@@ -124,7 +124,7 @@ export async function runDshNative(argv, options = {}) {
       ...process.env,
       ...(options.env ?? {}),
       DSH_TELEMETRY_DISABLED: '1',
-      DSH_HOME: options.home,
+      DESKWORK_HOME: options.home,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
@@ -231,7 +231,7 @@ export async function withCliWeb(home, cwd, action) {
     [dshNativeScript, '--profile', 'web', '--host', '127.0.0.1', '--port', '0', '--no-open'],
     {
       cwd,
-      env: { ...process.env, DSH_TELEMETRY_DISABLED: '1', DSH_HOME: home },
+      env: { ...process.env, DSH_TELEMETRY_DISABLED: '1', DESKWORK_HOME: home },
       stdio: ['ignore', 'pipe', 'pipe'],
     },
   )

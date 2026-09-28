@@ -133,7 +133,7 @@ try {
         2,
       )}\n`,
     )
-    const env = { ...process.env, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1' }
+    const env = { ...process.env, DESKWORK_HOME: home, DSH_TELEMETRY_DISABLED: '1' }
 
     const safeBoot = await run(['--profile', 'desktop-safe-mode', 'ping'], env, userData)
     // The bundle resolver must refuse the workspace bridge in a bare smoke

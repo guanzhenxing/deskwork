@@ -8,7 +8,7 @@
 
 | 变量            | 解析规则                                                                                                                                                                                       |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `<home>`        | `resolveDesktopHome()`（`packages/home-lease`）：`$DSH_HOME` trim 后非空时生效（支持 `~` 展开，相对路径相对进程 cwd），否则为 `~/.deskwork`（Deskwork 自有 home，不指向官方 CLI 的 `~/.dsh`）；解析结果不得为 filesystem root。覆盖语义与固定版上游 `resolveDshHome` 在隔离进程中对照测试，默认值有意分歧 |
+| `<home>`        | `resolveDesktopHome()`（`packages/home-lease`）：`$DESKWORK_HOME` trim 后非空时生效（支持 `~` 展开，相对路径相对进程 cwd），否则为 `~/.deskwork`（Deskwork 自有 home，不指向官方 CLI 的 `~/.dsh`）；解析结果不得为 filesystem root。上游的 `DSH_HOME` **不是输入**——入口解析从不读它，仅由入口把它设置给引擎子进程 |
 | `<isolatedHome>` | `<userData>` 下的专属隔离 home；受支持隔离冒烟入口专用，由 Electron 单实例/测试夹具独占，不是共享 `<home>`，不创建 lease                                                               |
 | `<profile>`     | `<home>/profiles/desktop`                                                                                                                                                                        |
 | `<safeProfile>` | Safe Mode 使用 `<home>/profiles/desktop-safe-mode`（精确三 bundle），同时是未来插件市场的前置能力                                                                                                |
@@ -132,7 +132,7 @@ DSH credential、settings、sessions 和 storages 不复制到 `<userData>`。
 
 所有涉及 profile、lease、恢复或迁移的自动化测试必须使用 `<testHome>`：
 
-- 测试开始时由 `tests/helpers/isolated-home.mjs` 的 `createIsolatedHomeFixture()` 在系统临时目录下创建；创建时拒绝环境 `DSH_HOME` 已设置、仓库目录、filesystem root 与真实 `~/.dsh`、`~/.deskwork`，清理前复核 realpath 与 dev/ino 身份；
+- 测试开始时由 `tests/helpers/isolated-home.mjs` 的 `createIsolatedHomeFixture()` 在系统临时目录下创建；创建时拒绝环境 `DESKWORK_HOME` 已设置、仓库目录、filesystem root 与真实 `~/.dsh`、`~/.deskwork`，清理前复核 realpath 与 dev/ino 身份；
 - fixture 可以从脱敏数据复制，不能链接到真实 home；
 - 失败时保留路径供诊断，清理命令只能针对已记录且验证过的临时目录；
 - 打包冒烟使用独立临时 macOS userData。

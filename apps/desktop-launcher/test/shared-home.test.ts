@@ -25,7 +25,7 @@ describe('describeLeaseBlock', () => {
     expect(view.title).toBe('Deskwork 无法独占数据目录')
     expect(view.body.join('\n')).toContain('bundled-cli')
     expect(view.body.join('\n')).toContain('不同 profile 不构成并发例外')
-    expect(view.body.join('\n')).toContain('DSH_HOME')
+    expect(view.body.join('\n')).toContain('DESKWORK_HOME')
     expect(view.body.join('\n')).not.toMatch(/\/Users\//u)
     expect(view.doctorCommand).toBe('dsh-native doctor --unlock')
   })

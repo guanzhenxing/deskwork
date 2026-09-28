@@ -17,7 +17,5 @@
     "@deepseek-ai/dsh-atomic-write": "0.1.7-rc.2",
     "@dsh-desktop/desktop-contracts": "workspace:*"
   },
-  "devDependencies": {
-    "@deepseek-ai/dsh-home-paths": "0.1.7-rc.2"
-  }
+  "devDependencies": {}
 }

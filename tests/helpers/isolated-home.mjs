@@ -40,15 +40,15 @@ async function directoryIdentity(dirname, label) {
 
 /**
  * Create a throwaway DSH home for tests. The fixture refuses to run while the
- * environment already carries a non-blank `DSH_HOME`, never places the home in
+ * environment already carries a non-blank `DESKWORK_HOME`, never places the home in
  * the repository, the filesystem root, or the real `~/.dsh`, and re-verifies
  * the recorded directory identity (realpath + dev/ino) before cleanup.
  */
 export async function createIsolatedHomeFixture() {
-  const envHome = process.env.DSH_HOME
+  const envHome = process.env.DESKWORK_HOME
   if (envHome !== undefined && envHome.trim().length > 0) {
     throw new Error(
-      'refusing to create an isolated home while DSH_HOME is set in the environment; unset it and pass the temporary home explicitly',
+      'refusing to create an isolated home while DESKWORK_HOME is set in the environment; unset it and pass the temporary home explicitly (the resolver reads DESKWORK_HOME only)',
     )
   }
   const userData = await mkdtemp(path.join(tmpdir(), fixturePrefix))

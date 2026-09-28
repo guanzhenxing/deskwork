@@ -240,7 +240,7 @@ export async function runInstalledApp(input) {
       DSH_DESKTOP_SMOKE: mode,
       ...(profileName === undefined ? {} : { DSH_DESKTOP_SMOKE_PROFILE: profileName }),
       DSH_DESKTOP_M0_USER_DATA: userData,
-      ...(home === undefined ? {} : { DSH_HOME: home }),
+      ...(home === undefined ? {} : { DESKWORK_HOME: home }),
       DSH_TELEMETRY_DISABLED: '1',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -371,7 +371,7 @@ export async function runInstalledCli(cliEntry, argv, options = {}) {
       HOME: process.env.HOME,
       ...(process.env.TMPDIR === undefined ? {} : { TMPDIR: process.env.TMPDIR }),
       DSH_TELEMETRY_DISABLED: '1',
-      DSH_HOME: options.home,
+      DESKWORK_HOME: options.home,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   })

@@ -75,7 +75,7 @@ function startHolder(home: string) {
 function runDoctor(home: string): Promise<{ code: number | null; output: string }> {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [dshNativeScript, 'doctor', '--unlock'], {
-      env: { ...process.env, DSH_HOME: home, DSH_DESKTOP_LEASE_HELPER: helperPath },
+      env: { ...process.env, DESKWORK_HOME: home, DSH_DESKTOP_LEASE_HELPER: helperPath },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
     let output = ''

@@ -59,6 +59,7 @@ deepseek-harness-desktop/
 | 命令                                        | 用途                                                        |
 | ------------------------------------------- | ----------------------------------------------------------- |
 | `pnpm build`                                | 构建全部 TypeScript project references                      |
+| `pnpm start`                                | 从仓库根启动桌面应用（转发到 launcher 的 `electron .`）     |
 | `pnpm build:icons`                          | 从原创 SVG 生成 ICNS 与托盘模板（macOS 自带工具）           |
 | `pnpm build:native`                         | 编译原生 lease helper（需要 Xcode CLT）                     |
 | `pnpm format:check`                         | 检查格式但不修改文件                                        |
