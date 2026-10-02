@@ -11,7 +11,7 @@
 以下组件属于发行版信任基：
 
 - Electron launcher、preload 与打包配置；
-- Host runner、`home-lease`、`profile-manager` 和 `host-supervisor`；
+- Host runner、`profile-manager` 和 `host-supervisor`；
 - `desktop-plugin` 与最小 `desktop-recovery-bridge`；
 - 精确固定并经本项目验证的 DSH runtime；
 - 更新能力引入后的更新签名信任根。
@@ -23,7 +23,7 @@ Electron renderer 视为需要隔离的 Web 内容。它不拥有 Node.js、任�
 ## 必须保护的资产
 
 - DSH credentials、settings、sessions 和 storages；
-- Host-control capability、lease generation 和 authenticated loopback URL；
+- Host-control capability、session generation 和 authenticated loopback URL；
 - profile generation、更新元数据和兼容性清单；
 - 未来远程设备的私钥、principal、scope 与审计记录；
 - 更新签名信任根和已校验发行制品。
@@ -36,7 +36,7 @@ Electron renderer 视为需要隔离的 Web 内容。它不拥有 Node.js、任�
 - 主 frame 只允许 authenticated URL 最终 origin 的同源导航；
 - 新窗口拒绝，允许的外部协议交给系统浏览器；
 - loopback URL 不是 privileged IPC 的授权证明；
-- Host-control 拒绝错误 capability、lease generation、Host identity、sequence、版本和状态转移；
+- Host-control 拒绝错误 capability、session generation、Host identity、sequence、版本和状态转移；
 - capability 不通过命令行、环境变量、stdout、普通日志或磁盘传递。
 
 ## 原生能力与用户确认
@@ -58,9 +58,10 @@ Host-process capability 只能证明消息来自 launcher 创建的 Host，不�
 ## DSH home 与 profile
 
 - 同一 home 同时只允许一个受支持 Host writer；
-- Desktop 与 `dsh-native` 在任何 boot、profile mutation 或 cache 隔离前获取整 home lease（`<home>/run/host.lock` + guard 短临界区，见 [home-lease 协议](docs/protocols/home-lease.md)）；owner 未知或进程活跃时拒绝清锁，`doctor --unlock` 不提供 force 绕过；
-- 受支持的隔离冒烟入口使用 `<userData>` 下的专属隔离 home，不触碰共享 home；
-- lease 不按年龄自动抢占；
+- Host 进程在 boot 前取得 `<home>/run/host.lock` 的内核 `flock` 并持有到退出；锁随进程消亡释放，不存在陈旧锁，也不存在 force 绕过；
+- 启动前 launcher 判定该锁：被持有时只能终止记录在案的 Host，终止不掉即拒绝启动（fail closed），不提供忽略开关；
+- 受支持的隔离冒烟入口使用 `<userData>` 下的专属隔离 home，不触碰真实 home；
+- 锁不按时间或年龄推断：唯一的判据是内核是否仍持有它；
 - profile 恢复只处理白名单并要求候选 SHA 仍匹配；
 - Desktop 不自动回滚 credentials、settings、home patch、sessions 或 storages；
 - 所有路径验证绝对父目录并拒绝危险 symlink；

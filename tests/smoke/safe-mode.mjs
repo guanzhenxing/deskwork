@@ -1,6 +1,6 @@
 // M2 smoke: Safe Mode boots the fixed first-party bundle set without loading
 // normal-profile third-party code, and the user-triggered Safe Mode entry is
-// wired through the real recovery session: lease profile switch, safe profile
+// wired through the real recovery session: session profile switch, safe profile
 // preparation, safe attempt, and back to a normal retry.
 import { spawn } from 'node:child_process'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
@@ -19,9 +19,10 @@ const requireFromShellCore = createRequire(
   path.join(root, 'packages', 'shell-core', 'package.json'),
 )
 const shellCore = requireFromShellCore('@deskwork/shell-core')
-const homeLease = requireFromShellCore('@deskwork/home-lease')
+const { createHomeSession } = requireFromShellCore('@deskwork/desktop-contracts/home-session')
 const { RecoverySessionController, StartupFailureError, createDesktopProfileRecovery } = shellCore
-const { acquireHomeLease, createInProcessGuardLock } = homeLease
+const contracts = requireFromShellCore('@deskwork/desktop-contracts/package.json')
+void contracts
 
 const fixtures = []
 
@@ -56,23 +57,6 @@ async function run(args, env, cwd) {
     child.once('exit', (code) => resolve(code ?? 1))
   })
   return { code: exit, output }
-}
-
-function sameProbe() {
-  return {
-    async current() {
-      return { pid: process.pid, startIdentity: 'safe-mode-smoke' }
-    },
-    async identify(pid) {
-      return { pid, startIdentity: 'safe-mode-smoke' }
-    },
-    async inspect() {
-      return 'same'
-    },
-    async scanSupported() {
-      return 'none'
-    },
-  }
 }
 
 const runtimeFailure = new StartupFailureError({
@@ -154,28 +138,21 @@ try {
     }
   }
 
-  // ── Session-level wiring: user-triggered Safe Mode on the real lease/profiles ──
+  // ── Session-level wiring: user-triggered Safe Mode on the real session/profiles ──
   {
     const userData = await freshRoot('session')
     const home = path.join(userData, 'home')
     await mkdir(path.join(home, 'profiles', 'desktop'), { recursive: true, mode: 0o700 })
-    const lease = await acquireHomeLease({
-      home,
-      entrypoint: 'desktop',
-      profile: 'desktop',
-      appVersion: '0.0.0',
-      probe: sameProbe(),
-      guard: createInProcessGuardLock(),
-    })
+    const homeSession = await createHomeSession({ home: home, profile: 'desktop' })
     const session = {
       attempts: [],
       views: [],
       controller: undefined,
     }
     session.controller = new RecoverySessionController({
-      acquireLease: async () => lease,
+      session: homeSession,
       profile: createDesktopProfileRecovery({ home, profileName: 'desktop' }),
-      createAttempt: (_lease, mode) => {
+      createAttempt: (_session, mode) => {
         session.attempts.push(mode)
         // The normal boot fails; the safe boot publishes its surface.
         return {
@@ -216,7 +193,7 @@ try {
     if (safeManifest.dsh.profile.bundles.length !== 3) {
       throw new Error('safe profile does not hold exactly the first-party bundle set')
     }
-    // Normal profile keeps its user bytes; quitting releases the lease.
+    // Normal profile keeps its user bytes; quitting releases the session.
     await session.controller.act('quit')
     if (session.controller.state !== 'stopped') throw new Error('quit from safe mode did not stop')
   }
@@ -226,14 +203,7 @@ try {
     const userData = await freshRoot('bridge-dead')
     const home = path.join(userData, 'home')
     await mkdir(path.join(home, 'profiles', 'desktop'), { recursive: true, mode: 0o700 })
-    const lease = await acquireHomeLease({
-      home,
-      entrypoint: 'desktop',
-      profile: 'desktop',
-      appVersion: '0.0.0',
-      probe: sameProbe(),
-      guard: createInProcessGuardLock(),
-    })
+    const homeSession = await createHomeSession({ home: home, profile: 'desktop' })
     const bridgeFailure = new StartupFailureError({
       stage: 'publish-surface',
       code: 'SURFACE_MISSING',
@@ -243,7 +213,7 @@ try {
     })
     const session = { views: [], controller: undefined }
     session.controller = new RecoverySessionController({
-      acquireLease: async () => lease,
+      session: homeSession,
       profile: createDesktopProfileRecovery({ home, profileName: 'desktop' }),
       // Both the normal boot and the safe boot fail.
       createAttempt: () => ({

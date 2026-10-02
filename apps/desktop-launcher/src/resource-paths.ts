@@ -32,10 +32,6 @@ export { launcherDirectory }
 export type InstalledRuntimePaths = Readonly<{
   hostEntry: string
   hostInstallAnchor: string
-  cliEntry: string
-  nodeExecutable: string
-  pnpmEntry: string
-  leaseHelper: string
   recoveryHtml: string
   recoveryPreload: string
   compileCachePreload: string
@@ -56,10 +52,6 @@ export function resolveInstalledRuntime(resourcesPath: string): InstalledRuntime
   return Object.freeze({
     hostEntry: path.join(root, 'runtime-host', 'lib', 'host-entry.js'),
     hostInstallAnchor: path.join(root, 'runtime-host', 'package.json'),
-    cliEntry: path.join(root, 'runtime-cli', 'bin', 'dsh-native'),
-    nodeExecutable: path.join(root, 'runtime-cli', 'node', 'bin', 'node'),
-    pnpmEntry: path.join(root, 'runtime-cli', 'pnpm', 'pnpm.cjs'),
-    leaseHelper: path.join(root, 'native', 'lease-helper'),
     recoveryHtml: path.join(recovery, 'recovery-view.html'),
     recoveryPreload: path.join(recovery, 'recovery-preload.cjs'),
     compileCachePreload: path.join(recovery, 'host-compile-cache.cjs'),

@@ -4,7 +4,7 @@
 // browser. A separate manual system external-link check covers real
 // shell.openExternal behavior.
 import { createDesktopSmokeRoot } from '../helpers/desktop-smoke-root.mjs'
-import { ensureLauncherBuilt, withDesktop } from '../helpers/shared-home-driver.mjs'
+import { ensureLauncherBuilt, withDesktop } from '../helpers/desktop-driver.mjs'
 
 await ensureLauncherBuilt()
 const root = await createDesktopSmokeRoot()

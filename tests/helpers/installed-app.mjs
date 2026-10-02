@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { clearTimeout as cancelTimer, setTimeout as sleepTimer } from 'node:timers'
 
-import { waitUntilDead } from './shared-home-driver.mjs'
+import { waitUntilDead } from './desktop-driver.mjs'
 
 /**
  * Emergency teardown registry: every launched process group and temporary
@@ -188,13 +188,11 @@ export async function installFromDmg(dmgPath, productName) {
     if (detached) unregisterMount?.()
   }
   const appPath = path.join(installDirectory, `${productName}.app`)
-  const resources = path.join(appPath, 'Contents', 'Resources')
   const unregister = registerCleanup(() => rm(installDirectory, { recursive: true, force: true }))
   return {
     installDirectory,
     appPath,
     executable: path.join(appPath, 'Contents', 'MacOS', productName),
-    cliEntry: path.join(resources, 'runtime-cli', 'bin', 'dsh-native'),
     async dispose() {
       unregister()
       const identity = await lstat(installDirectory)
@@ -353,57 +351,4 @@ export async function runInstalledApp(input) {
     }
   }
   return reports
-}
-
-/**
- * Run the installed CLI shim with the same scrubbed environment semantics.
- * argv forwards verbatim; resolve/PATH never touch the repository. The shim
- * runs as its own process GROUP: a timeout (or an interrupted driver) kills
- * the whole group — the shim's spawned CLI child must not survive as an
- * orphan holding the smoke home's lease.
- */
-export async function runInstalledCli(cliEntry, argv, options = {}) {
-  const child = spawn(cliEntry, argv, {
-    cwd: options.cwd,
-    detached: true,
-    env: {
-      PATH: '/usr/bin:/bin',
-      HOME: process.env.HOME,
-      ...(process.env.TMPDIR === undefined ? {} : { TMPDIR: process.env.TMPDIR }),
-      DSH_TELEMETRY_DISABLED: '1',
-      DESKWORK_HOME: options.home,
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  })
-  const killGroup = () => {
-    try {
-      process.kill(-child.pid, 'SIGKILL')
-    } catch {
-      /* already gone */
-    }
-    return Promise.resolve()
-  }
-  const unregister = registerEmergencyCleanup(killGroup)
-  const output = []
-  for (const stream of [child.stdout, child.stderr]) {
-    stream.setEncoding('utf8')
-    stream.on('data', (chunk) => output.push(chunk))
-  }
-  const exit = await new Promise((resolve, reject) => {
-    const timer = sleepTimer(() => {
-      killGroup()
-      reject(
-        new Error(`installed cli ${argv[0]} timed out after ${options.timeoutMs ?? 240_000}ms`),
-      )
-    }, options.timeoutMs ?? 240_000)
-    child.once('error', (error) => {
-      cancelTimer(timer)
-      reject(error)
-    })
-    child.once('exit', (code, signal) => {
-      cancelTimer(timer)
-      resolve({ code, signal })
-    })
-  }).finally(unregister)
-  return { ...exit, output: output.join('') }
 }

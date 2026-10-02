@@ -5,7 +5,7 @@
 
 ## 1. 手动升级流程
 
-1. **完全退出旧版**：托盘菜单退出，或 Dock 右键退出；确认退出完成（lease 释放）再继续。
+1. **完全退出旧版**：托盘菜单退出，或 Dock 右键退出；确认退出完成（Host 进程结束、home lock 释放）再继续。
 2. **核对制品与兼容性**：确认新 DMG 的 SHA-256 与 `release/artifacts.json` 记录一致（`shasum -a 256`）；查看 DMG 内嵌的 `Contents/Resources/compatibility.json`（schema 2）中的 `dataEpoch` 与 `dsh` 基线。
 3. **（可选但推荐）备份 home**：`cp -R ~/.deskwork ~/.deskwork.backup-<日期>`。升级不修改 credentials/settings/会话，但备份是唯一可靠的回退保险。
 4. **替换应用**：把新 `.app` 拖入 `/Applications`（或你的安装目录）覆盖旧版。
@@ -14,14 +14,14 @@
 
 ## 2. 兼容性保护如何工作
 
-- 每个受支持入口（Desktop、Safe Mode、`dsh-native`）在写入 home 之前执行最小准入：读取兼容性 marker → 校验 schemaVersion 与 dataEpoch → 写入预约（`<home>/run/compatibility.json`）。
-- 新版本能在旧数据上启动（epoch 在支持范围内）；**旧版本拒绝打开新版本写过的高 epoch 数据**（恢复页明确提示，不产生任何写入；CLI 退出码 5）。
+- 每个受支持入口（Desktop、Safe Mode）在写入 home 之前执行最小准入：读取兼容性 marker → 校验 schemaVersion 与 dataEpoch → 写入预约（`<home>/run/compatibility.json`）。
+- 新版本能在旧数据上启动（epoch 在支持范围内）；**旧版本拒绝打开新版本写过的高 epoch 数据**（恢复页明确提示，不产生任何写入）。
 - 损坏或未知 schema 的 marker 一律拒绝：数据保持原状，等待能处理它的版本。
 - 升级不升级、不卸载、不重写用户第三方插件与 home settings；这两类内容完全留给你。
 
 ## 3. 拒绝降级时怎么办
 
-如果旧版 DMG 启动后提示“由更高数据版本写入”（`HOME_DATA_UNSUPPORTED` / 退出码 5）：
+如果旧版启动后提示“由更高数据版本写入”（`HOME_DATA_UNSUPPORTED`）：
 
 1. **不要**删除 marker、不要手工改 `~/.deskwork/run/compatibility.json`；
 2. 装回能读该数据的版本（写入它的那个版本）继续使用；
@@ -34,11 +34,57 @@
 
 ## 5. 升级执行流程（面向维护者）
 
-上游出现新 tag 时，真实升级在独立候选分支 `chore/upgrade-dsh-<实际标签>` 上执行（更新 tag/commit/闭包 → 重跑全部门禁 → 打包候选），与功能分支严格隔离。放行标准是门禁全绿加安装级冒烟（`smoke:package`）；升级窗口前后在**副本 home** 上手动做一次"读历史 → 写入 → 重启 → 再读"验证，绝不读写真实数据目录。
+上游出现新 tag 时，真实升级在独立候选分支 `chore/upgrade-dsh-<实际标签>` 上执行，与功能分支严格隔离。
+
+### 5.1 升级风险面
+
+生产代码对上游的依赖集中在少数几个文件；升级时先读它们，就能判断这次是否会被上游 API 变动波及。
+
+| 文件                                          | 触及的上游                                                                                                                                                             |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/host-supervisor/src/host-runner.ts` | `@deepseek-ai/dsh-app-boot` 的 `boot`、`loadProfile`、`createRuntimeResolution`、`loadOptionalPatches`、`PluginPackages`，以及 `dsh-cmdline`、`dsh-launch-environment` |
+| `packages/desktop-plugin/src/index.ts`        | cordis 的 `Context` 类型与服务名 `connection`、`webServer`                                                                                                             |
+| `packages/desktop-recovery-bridge/src/`       | 同上                                                                                                                                                                   |
+
+历史上破坏性较强的上游变动（模块解析物化方式的替换、自动化任务移入可选插件包）都落在第一个文件上。
+
+### 5.2 版本声明的位置
+
+上游版本只有**一个事实源**：`build/upstream-artifacts.json` 的 `dsh.npmVersion`（由 `verify:dsh-closure` 对账）。它被投影到三处，全部由 `pnpm upgrade:dsh-pins` 生成：
+
+1. `pnpm-workspace.yaml` 的 `overrides['@deepseek-ai/dsh*']`；
+2. `pnpm-workspace.yaml` 的 `minimumReleaseAgeExclude`：逐个 DSH 包的条目（当前 284 条）。这份列表存在的原因是上游 rc 发布过新、会触发 pnpm 的 minimumReleaseAge 策略；它**不是排序集合**，而是历史批次的拼接，脚本按原顺序改写、只追加新解析出的包名；
+3. 各 `packages/*`、`apps/*` 清单里对 `@deepseek-ai/dsh*` 的依赖声明。
+
+`@deepseek-ai/cordis` 是独立版本轴（见 `build/upstream-artifacts.json` 的 `independentPackages`），脚本永不改动。
+
+`pnpm check` 已包含 `check:dsh-pins`：任何一处漏改都会让 CI 红。
+
+### 5.3 升级 runbook
+
+| #   | 动作               | 说明                                                                                                          |
+| --- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| 0   | 判断是否值得升     | 由新 tag、影响本项目的缺陷或安全问题、真实使用需求触发，不按日历                                              |
+| 1   | 开候选分支         | `chore/upgrade-dsh-<实际标签>`                                                                                |
+| 2   | 更新基线账本       | `build/upstream-artifacts.json` 的 `tag`、`commit`、`npmVersion` 与逐包 integrity                             |
+| 3   | 同步版本声明       | `pnpm upgrade:dsh-pins`                                                                                       |
+| 4   | 重解依赖           | `pnpm install`                                                                                                |
+| 5   | 重新生成兼容性清单 | `pnpm generate:compatibility`                                                                                 |
+| 6   | 跑门禁             | `pnpm verify:dsh-closure`、`pnpm verify:patches`、`pnpm verify:runtime-tree`、`pnpm check`                    |
+| 7   | 集成测试           | `pnpm test:integration`                                                                                       |
+| 8   | **无头启动冒烟**   | `pnpm smoke:headless`——核心信号：profile 能否在纯 Node 中启动并服务官方 UI                                    |
+| 9   | 桌面冒烟           | `pnpm smoke:dsh-ui`、`host-crash`、`profile-recovery`、`safe-mode`、`lifecycle`                               |
+| 10  | 打包验收           | `pnpm package:dir` 与 `pnpm smoke:package`                                                                    |
+| 11  | 数据格式决策       | 仅当上游改动会话或设置的磁盘格式时，才决定是否升 `build/compatibility-policy.json` 的 `dataEpoch`；不预先升级 |
+| 12  | 保留回退候选       | 保留上一版 `.app`；旧版本靠准入拒绝高 epoch 数据，不靠运气                                                    |
+
+放行标准是门禁全绿加安装级冒烟（`smoke:package`）。升级窗口前后在**副本 home** 上手动做一次"读历史 → 写入 → 重启 → 再读"验证，绝不读写真实数据目录。
+
+若无头启动冒烟在第 8 步失败，说明宿主与上游的接缝变了：先读 5.1 的第一行文件，再决定是改代码还是放弃该版本。
 
 ## 6. 已知边界
 
 - 旧 DMG 只回退二进制；它**不承诺**能读取新格式数据（靠 admission 拒绝，不靠运气）。
-- **冻结旧制品的 doctor 与新版共存**：lease 进程身份使用纯进程启动时间；新版 probe 对旧格式身份串（启动时间后缀形式）兼容——旧版活持有者判 `same`，锁不会被新 doctor 删。但**冻结的旧制品反向不兼容**——旧 helper 拿新身份串整串比较会判 `different`，旧版 doctor 因此可能删除新版正在持有的活锁。后果有界且在协议层被阻止：**锁目录布局 v2**（`host.lock/.dsh-writer-sentinel` 哨兵）让一切版本的 doctor 对非空锁目录 `rmdir` 一律拒绝——旧制品的 doctor 即便误读新身份格式，也最多删掉 owner 文件而**永远删不掉 v2 活锁目录**，新入口无法取得新锁，双写在锁布局层被阻止；残留的“无 owner 锁目录”由新版 doctor 清理。**lease watchdog** 作为兜底：supervisor/CLI 在 Host/子进程运行期间周期性复核 lease（默认 2s，guard 竞争不计、连续两次非竞争失败处决己方 Host/子进程），把任何其他路径的锁丢失双写窗口压缩到约一个监视周期。lease 把守的是准入，不是 Host 自身的数据写。限制：升级窗口内不要运行旧制品的 `doctor --unlock`（或任何旧二进制）指向新版正使用的 home；此限制随旧制品淘汰自然消失。
+- **冻结旧制品与新版共存**：两个世代的 home 所有权载体在同一个路径上互斥——旧制品把 `<home>/run/host.lock` 当**目录**（`mkdir` 取得，内含 owner 记录），新版把它当**文件**（内核 `flock`）。目录在前时新版打不开文件，文件在前时旧版 `mkdir` 得到 EEXIST，双方都拒绝启动，因此双写在载体层就不可能发生。限制：升级窗口内不要用任何旧二进制指向新版正在使用的 home；该限制随旧制品淘汰自然消失。
 - marker 只约束受支持入口之间的协作：裸 CLI、无 guard 的旧二进制或手工写入不受保护。
 - 本地自用构建未签名/未公证：Gatekeeper 首次启动需要右键打开；公开分发预编译二进制前需先完成发行要求。公开源代码、由使用者自行构建不受此项限制。

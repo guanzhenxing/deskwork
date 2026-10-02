@@ -47,18 +47,14 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build the native lease helper
-        run: pnpm build:native
       - name: Run integration tests
         run: pnpm test:integration
-      - name: Run shared-home integration tests
-        run: pnpm test:shared-home
+      - name: Run headless boot smoke
+        run: pnpm smoke:headless
       - name: Run Desktop UI smoke
         run: pnpm smoke:dsh-ui
       - name: Run Host crash smoke
         run: pnpm smoke:host-crash
-      - name: Run shared-home smoke
-        run: pnpm smoke:shared-home
       - name: Run profile-recovery smoke
         run: pnpm smoke:profile-recovery
       - name: Run safe-mode smoke

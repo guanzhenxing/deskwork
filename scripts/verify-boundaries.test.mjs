@@ -149,30 +149,6 @@ test('rejects DSH imports from the product configuration package', async () => {
   }
 })
 
-test('allows only the atomic-write package from home-lease sources', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 'dsh-boundaries-'))
-  try {
-    const sourceDir = path.join(root, 'packages', 'home-lease', 'src')
-    await mkdir(sourceDir, { recursive: true })
-    await writeFile(
-      path.join(sourceDir, 'owner.ts'),
-      "import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'\n",
-    )
-    await writeFile(
-      path.join(sourceDir, 'lease.ts'),
-      "import { loadProfile } from '@deepseek-ai/dsh-app-boot'\n",
-    )
-
-    const violations = await findBoundaryViolations(root)
-    assert.deepEqual(
-      violations.map((item) => item.rule),
-      ['home-lease-dsh-allowlist'],
-    )
-  } finally {
-    await removeFixture(root)
-  }
-})
-
 test('requires capability-specific desktop-contracts imports', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'dsh-boundaries-'))
   try {

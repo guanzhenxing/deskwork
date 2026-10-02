@@ -1,10 +1,10 @@
 import { lstat, mkdir, readFile, readdir } from 'node:fs/promises'
 import path from 'node:path'
 
-import type { HomeLease } from '@deskwork/home-lease'
+import type { HomeSession } from '@deskwork/desktop-contracts/home-session'
 
 import type { ProfileRef } from './profile-ref.js'
-import { assertRealDirectory, writeAtomicDurable } from './durable-fs.js'
+import { assertRealDirectory, writeAtomicDurable } from '@deskwork/durable-fs'
 
 export const SAFE_PROFILE_NAME = 'desktop-safe-mode'
 
@@ -39,15 +39,14 @@ export function safeProfileManifest() {
  */
 export async function prepareSafeProfile(
   ref: ProfileRef,
-  lease: HomeLease,
+  session: HomeSession,
 ): Promise<'prepared' | 'conflict'> {
   if (ref.name !== SAFE_PROFILE_NAME) {
     throw new Error('prepareSafeProfile only owns the desktop-safe-mode profile')
   }
-  if (lease.home !== ref.home) {
-    throw new Error('safe profile preparation requires a lease bound to the home')
+  if (session.home !== ref.home) {
+    throw new Error('safe profile preparation requires a session bound to the home')
   }
-  await lease.assertHeld()
   // The safe profile tree must be real directories: a symlinked profiles/
   // or desktop-safe-mode/ would write the manifest outside the home.
   await assertRealDirectory(path.join(ref.home, 'profiles'), 'profiles directory')

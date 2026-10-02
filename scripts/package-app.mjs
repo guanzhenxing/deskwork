@@ -30,7 +30,6 @@ async function assertStaged() {
     'runtime-host/lib/host-entry.js',
     'runtime-cli/bin/dsh-native',
     'runtime-cli/node/bin/node',
-    'native/lease-helper',
     'recovery/recovery-view.html',
     'compatibility.json',
   ]

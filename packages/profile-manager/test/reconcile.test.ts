@@ -3,7 +3,7 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { acquireHomeLease, createInProcessGuardLock, type ProcessProbe } from '@deskwork/home-lease'
+import { createHomeSession } from '@deskwork/desktop-contracts/home-session'
 
 import {
   createIsolatedHomeFixture,
@@ -29,57 +29,24 @@ afterEach(async () => {
   for (const fixture of fixtures.splice(0)) await fixture.dispose()
 })
 
-class SameProbe implements ProcessProbe {
-  async current() {
-    return { pid: process.pid, startIdentity: 'reconcile-probe' }
-  }
-  async identify(pid: number) {
-    return { pid, startIdentity: 'reconcile-probe' }
-  }
-  async inspect() {
-    return 'same' as const
-  }
-  async scanSupported() {
-    return 'none' as const
-  }
-}
-
 async function heldLease(home: string) {
-  return acquireHomeLease({
-    home,
-    entrypoint: 'desktop',
-    profile: 'deskwork',
-    appVersion: '0.0.0',
-    probe: new SameProbe(),
-    guard: createInProcessGuardLock(),
-  })
+  return createHomeSession({ home: home, profile: 'deskwork' })
 }
 
-describe('reconcileDesktopProfile lease authority', () => {
-  it('reconciles under a live home lease', async () => {
+describe('reconcileDesktopProfile session authority', () => {
+  it('reconciles under a live home session', async () => {
     const home = await testHome()
-    const lease = await heldLease(home)
-    const result = await reconcileDesktopProfile(createProfileRef(home, 'deskwork'), lease)
+    const session = await heldLease(home)
+    const result = await reconcileDesktopProfile(createProfileRef(home, 'deskwork'), session)
     expect(result.changed).toBe(true)
     expect(
       JSON.parse(await readFile(path.join(home, 'profiles', 'deskwork', 'package.json'), 'utf8')),
     ).toMatchObject({
       dsh: { profile: { bundles: [...DESKTOP_BUNDLE_PREFIX] } },
     })
-    await lease.release()
   })
 
-  it('refuses writes after the lease was released', async () => {
-    const home = await testHome()
-    const lease = await heldLease(home)
-    await reconcileDesktopProfile(createProfileRef(home, 'deskwork'), lease)
-    await lease.release()
-    await expect(
-      reconcileDesktopProfile(createProfileRef(home, 'deskwork'), lease),
-    ).rejects.toThrow(/released/u)
-  })
-
-  it('rejects a plain { home, generation } literal masquerading as a lease', async () => {
+  it('rejects a plain { home, generation } literal masquerading as a session', async () => {
     const home = await testHome()
     const fake = { home, generation: 'forged' } as unknown as Parameters<
       typeof reconcileDesktopProfile
@@ -91,14 +58,13 @@ describe('reconcileDesktopProfile lease authority', () => {
     await expect(readFile(manifest, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
   })
 
-  it('refuses a lease bound to another home', async () => {
+  it('refuses a session bound to another home', async () => {
     const home = await testHome()
     const other = await testHome()
-    const lease = await heldLease(other)
+    const session = await heldLease(other)
     await expect(
-      reconcileDesktopProfile(createProfileRef(home, 'deskwork'), lease),
+      reconcileDesktopProfile(createProfileRef(home, 'deskwork'), session),
     ).rejects.toThrow(/does not match/u)
-    await lease.release()
   })
 })
 

@@ -86,17 +86,6 @@ export async function findBoundaryViolations(root) {
           specifier,
         })
       }
-      if (
-        relativeFile.startsWith(path.join('packages', 'home-lease', 'src') + path.sep) &&
-        specifier.startsWith('@deepseek-ai/') &&
-        specifier !== '@deepseek-ai/dsh-atomic-write'
-      ) {
-        violations.push({
-          file: relativeFile,
-          rule: 'home-lease-dsh-allowlist',
-          specifier,
-        })
-      }
     }
   }
 

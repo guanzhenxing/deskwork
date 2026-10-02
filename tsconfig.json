@@ -15,9 +15,6 @@
   ],
   "references": [
     {
-      "path": "apps/bundled-cli"
-    },
-    {
       "path": "apps/desktop-launcher"
     },
     {
@@ -30,10 +27,7 @@
       "path": "packages/desktop-recovery-bridge"
     },
     {
-      "path": "packages/deskwork-workbench"
-    },
-    {
-      "path": "packages/home-lease"
+      "path": "packages/durable-fs"
     },
     {
       "path": "packages/host-supervisor"

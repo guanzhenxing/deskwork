@@ -26,7 +26,7 @@ Host-control 是 Electron launcher 与其创建的单个 DSH Host runner 之间�
 launcher 在启动 Host 前创建：
 
 - 至少 256 bit 的随机 `capability`；
-- 当前 home authority 的随机 `leaseGeneration`：共享 home 绑定 durable home lease generation，隔离冒烟入口使用每次启动生成的 channel generation；
+- 当前 home session 的随机 `leaseGeneration`（协议字段名沿用）：真实 home 绑定本次运行的 session generation，隔离冒烟入口使用每次启动生成的 channel generation；
 - 预期 profile、mode 和 Host 进程身份；
 - 专用消息通道。
 
@@ -56,7 +56,7 @@ type Envelope<Message> = {
 约束：
 
 - `sequence` 是每个方向独立、从 `1` 开始、每次加一的安全整数；
-- capability 和 lease generation 必须常量时间比较；
+- capability 和 session generation 必须常量时间比较；
 - direction 必须与实际接收端一致；
 - schema 必须拒绝额外的可执行值、原型污染键、非有限数字和超出限制的字符串；
 - 任何校验失败都关闭通道并使本次 Host 候选失败，不向对端返回秘密或详细解析信息。
@@ -150,7 +150,7 @@ channel-created
 
 launcher 可以在 `accepted` 之后的任意非终态发送 dispose 并进入 `draining`，不需要等待 surface 或 ready。
 
-如果 Host 在 surface 之前失败，launcher 显示 launcher-owned 恢复页。如果 Host 在应用 ready 后退出，launcher 销毁旧 renderer surface，但继续持有 home lease 并保留恢复窗口。
+如果 Host 在 surface 之前失败，launcher 显示 launcher-owned 恢复页。如果 Host 在应用 ready 后退出，launcher 销毁旧 renderer surface 并保留恢复窗口。
 
 ## 6. Surface 校验
 
@@ -190,7 +190,7 @@ launcher 发送一次 `dispose` 后进入 draining：
 3. Host 发送 `dispose-ack` 并退出；
 4. launcher 等待进程退出；
 5. 超时后先 terminate，最后才 force kill；
-6. 只有 Host 确认退出后，launcher 才释放 home lease。
+6. Host 确认退出即释放它自己持有的 home lock。
 
 重复的 launcher 关停请求在本地合并，不向 Host 发送多个 dispose。Host 若已经完成 dispose，可以返回 `already-disposed`。
 
@@ -203,7 +203,7 @@ launcher 至少使用以下稳定错误 code；它们是诊断分类，不是可
 | `PROTOCOL_MISMATCH`      | name、major 或 minor 无法协商      |
 | `INVALID_ENVELOPE`       | schema、direction 或 sequence 非法 |
 | `INVALID_CAPABILITY`     | capability 不匹配                  |
-| `LEASE_MISMATCH`         | lease generation 不匹配            |
+| `LEASE_MISMATCH`         | session generation 不匹配          |
 | `HOST_IDENTITY_MISMATCH` | PID/start identity 不匹配          |
 | `INVALID_TRANSITION`     | 消息不符合状态机                   |
 | `SURFACE_REJECTED`       | purpose 或 loopback URL 校验失败   |
@@ -220,7 +220,7 @@ launcher 至少使用以下稳定错误 code；它们是诊断分类，不是可
 - 合法 normal hello → accept → phases → surface → ready；
 - future launcher 与 1.0 Host 的 minor 交集；
 - 协议名、major 和 minor 无交集；
-- capability、lease generation、direction、PID 和 start identity 错误；
+- capability、session generation、direction、PID 和 start identity 错误；
 - sequence 重复、跳号、倒退和非安全整数；
 - ready-before-surface、purpose/mode 不匹配和重复终态；
 - 非 `127.0.0.1`、隐式/非法端口、userinfo 和 fragment URL；

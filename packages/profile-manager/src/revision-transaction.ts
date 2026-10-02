@@ -3,13 +3,13 @@ import { lstat, mkdir, open, readFile, rm, stat, unlink } from 'node:fs/promises
 import type { Stats } from 'node:fs'
 import path from 'node:path'
 
-import type { HomeLease } from '@deskwork/home-lease'
+import type { HomeSession } from '@deskwork/desktop-contracts/home-session'
 
 import type { ProfileRef } from './profile-ref.js'
 import { sha256Of } from './reconcile-plan.js'
 import { MANAGED_PROFILE_PATHS } from './reconcile-plan.js'
 import type { FileRevision, ManagedProfilePath, ProfileReconcilePlan } from './reconcile-plan.js'
-import { assertRealDirectory, syncDirectory, writeAtomicDurable } from './durable-fs.js'
+import { assertRealDirectory, syncDirectory, writeAtomicDurable } from '@deskwork/durable-fs'
 
 export type RevisionTransactionState =
   | 'prepared'
@@ -214,9 +214,9 @@ async function currentSha(filename: string): Promise<{
 
 export { currentSha }
 
-function assertLeaseMatches(lease: HomeLease, ref: ProfileRef): void {
-  if (lease.home !== ref.home) {
-    throw new Error('profile transaction requires a lease bound to the transaction home')
+function assertSessionMatches(session: HomeSession, ref: ProfileRef): void {
+  if (session.home !== ref.home) {
+    throw new Error('profile transaction requires a session bound to the transaction home')
   }
 }
 
@@ -228,9 +228,9 @@ function assertLeaseMatches(lease: HomeLease, ref: ProfileRef): void {
  */
 export async function applyProfileTransaction(
   plan: ProfileReconcilePlan,
-  lease: HomeLease,
+  session: HomeSession,
 ): Promise<RevisionTransaction> {
-  assertLeaseMatches(lease, plan.ref)
+  assertSessionMatches(session, plan.ref)
   if (plan.ref.dir !== path.join(plan.ref.home, 'profiles', plan.ref.name)) {
     throw new Error('ProfileRef directory does not match its home')
   }
@@ -242,10 +242,9 @@ export async function applyProfileTransaction(
   }
   const home = plan.ref.home
   const id = randomUUID()
-  // The lease must be proven live BEFORE any transaction state lands on
-  // disk: a stale lease would otherwise leave a half-born transaction for
+  // The session must be validated BEFORE any transaction state lands on
+  // disk: a mismatched home would otherwise leave a half-born transaction for
   // the recovery scan to trip over before the failure surfaces here.
-  await lease.assertHeld()
   // The transaction tree must sit inside the real home layout: a symlinked
   // run/ or profile-transactions/ root would move journals (and before
   // snapshots) outside the home.
@@ -309,7 +308,6 @@ export async function applyProfileTransaction(
       ),
     }
     await writeJournalDurable(home, record)
-    await lease.assertHeld()
   }
 
   record = { ...record, state: 'applied' }
@@ -331,55 +329,52 @@ async function ensureRealProfileDirectory(ref: ProfileRef): Promise<void> {
   await assertRealDirectory(ref.dir, 'profile directory')
 }
 
-export async function commitProfileTransaction(id: string, lease: HomeLease): Promise<void> {
-  const journal = await readJournal(lease.home, id)
+export async function commitProfileTransaction(id: string, session: HomeSession): Promise<void> {
+  const journal = await readJournal(session.home, id)
   if (journal === 'missing' || journal === 'corrupt') {
     throw new Error(`cannot commit transaction ${id}: journal ${journal}`)
   }
-  await lease.assertHeld()
   if (journal.state !== 'applied') {
     throw new Error(`cannot commit transaction ${id} from state ${journal.state}`)
   }
-  await writeJournalDurable(lease.home, {
+  await writeJournalDurable(session.home, {
     ...journal,
     state: 'committed',
   })
-  await pruneRetainedTransactions(lease.home)
+  await pruneRetainedTransactions(session.home)
 }
 
 /** Record an explicit decision not to roll back (with the failure category). */
 export async function retainProfileTransaction(
   id: string,
-  lease: HomeLease,
+  session: HomeSession,
   failure: Readonly<{ category: string; code: string }>,
 ): Promise<void> {
-  const journal = await readJournal(lease.home, id)
+  const journal = await readJournal(session.home, id)
   if (journal === 'missing' || journal === 'corrupt') {
     throw new Error(`cannot retain transaction ${id}: journal ${journal}`)
   }
-  await lease.assertHeld()
   if (journal.state !== 'applied') {
     // A conflict or already-settled journal must never be rewritten by a
     // later retain decision — its recorded outcome is the diagnosis.
     throw new Error(`cannot retain transaction ${id} from state ${journal.state}`)
   }
-  await writeJournalDurable(lease.home, {
+  await writeJournalDurable(session.home, {
     ...journal,
     state: 'retained',
     failure,
   })
-  await pruneRetainedTransactions(lease.home)
+  await pruneRetainedTransactions(session.home)
 }
 
 export async function rollbackProfileTransaction(
   id: string,
-  lease: HomeLease,
+  session: HomeSession,
 ): Promise<'restored' | 'conflict'> {
-  const journal = await readJournal(lease.home, id)
+  const journal = await readJournal(session.home, id)
   if (journal === 'missing' || journal === 'corrupt') {
     throw new Error(`cannot roll back transaction ${id}: journal ${journal}`)
   }
-  await lease.assertHeld()
   if (journal.state === 'rolled-back') return 'restored'
   if (
     journal.state === 'committed' ||
@@ -403,13 +398,13 @@ export async function rollbackProfileTransaction(
     const allowed: (string | null)[] = [write.candidateSha256, write.before.sha256]
     if (write.before.exists === false && current.kind === 'missing') allowed.push(null)
     if (current.kind === 'other' || !allowed.includes(current.sha)) {
-      await writeJournalDurable(lease.home, { ...journal, state: 'conflict' })
+      await writeJournalDurable(session.home, { ...journal, state: 'conflict' })
       return 'conflict'
     }
     checked.push({ write, sha: current.sha, inode: current.inode })
   }
 
-  await writeJournalDurable(lease.home, { ...journal, state: 'rolling-back' })
+  await writeJournalDurable(session.home, { ...journal, state: 'rolling-back' })
 
   // Phase 2: idempotently move each file back to before, re-verifying the
   // path/inode/digest immediately before every write so drift between the
@@ -418,14 +413,14 @@ export async function rollbackProfileTransaction(
     const filename = path.join(ref.dir, write.path)
     const current = await currentSha(filename)
     if (!sameInode(current.inode, inode)) {
-      await writeJournalDurable(lease.home, { ...journal, state: 'conflict' })
+      await writeJournalDurable(session.home, { ...journal, state: 'conflict' })
       return 'conflict'
     }
     const sha = current.sha
     if (write.before.exists === false) {
       if (current.kind === 'missing') continue
       if (current.kind !== 'file') {
-        await writeJournalDurable(lease.home, { ...journal, state: 'conflict' })
+        await writeJournalDurable(session.home, { ...journal, state: 'conflict' })
         return 'conflict'
       }
       if (sha === write.candidateSha256) {
@@ -435,12 +430,12 @@ export async function rollbackProfileTransaction(
       }
       // In-place drift between the phases on a file this transaction created:
       // the same divergence the before-exists branch treats as conflict.
-      await writeJournalDurable(lease.home, { ...journal, state: 'conflict' })
+      await writeJournalDurable(session.home, { ...journal, state: 'conflict' })
       return 'conflict'
     }
     if (sha === write.before.sha256) continue
     if (sha === write.candidateSha256) {
-      const snapshot = await beforeSnapshotPath(lease.home, id, write.path)
+      const snapshot = await beforeSnapshotPath(session.home, id, write.path)
       let snapshotIdentity: Stats
       try {
         snapshotIdentity = await stat(snapshot)
@@ -448,27 +443,27 @@ export async function rollbackProfileTransaction(
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
         // A missing before-snapshot for a file needing restore is a broken
         // journal, not a reason to leave candidate bytes in place.
-        await writeJournalDurable(lease.home, { ...journal, state: 'conflict' })
+        await writeJournalDurable(session.home, { ...journal, state: 'conflict' })
         return 'conflict'
       }
       if (snapshotIdentity.isFile() !== true) {
-        await writeJournalDurable(lease.home, { ...journal, state: 'conflict' })
+        await writeJournalDurable(session.home, { ...journal, state: 'conflict' })
         return 'conflict'
       }
       const bytes = new Uint8Array(await readFile(snapshot))
       if (sha256Of(bytes) !== write.before.sha256) {
-        await writeJournalDurable(lease.home, { ...journal, state: 'conflict' })
+        await writeJournalDurable(session.home, { ...journal, state: 'conflict' })
         return 'conflict'
       }
       await writeCandidate(filename, bytes)
       continue
     }
-    await writeJournalDurable(lease.home, { ...journal, state: 'conflict' })
+    await writeJournalDurable(session.home, { ...journal, state: 'conflict' })
     return 'conflict'
   }
 
-  await writeJournalDurable(lease.home, { ...journal, state: 'rolled-back' })
-  await pruneRetainedTransactions(lease.home)
+  await writeJournalDurable(session.home, { ...journal, state: 'rolled-back' })
+  await pruneRetainedTransactions(session.home)
   return 'restored'
 }
 

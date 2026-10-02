@@ -1,5 +1,5 @@
 // M2 smoke: the real RecoverySessionController over the real profile-manager,
-// home lease, and transaction journals on a throwaway home. An attributable
+// home session, and transaction journals on a throwaway home. An attributable
 // profile failure rolls the journaled reconcile back byte-exact, relaunches
 // exactly once, and lands in the recovery view; a drifted candidate surfaces
 // conflict without overwriting; a healthy boot commits; home sentinel files
@@ -18,7 +18,7 @@ const requireFromShellCore = createRequire(
   path.join(root, 'packages', 'shell-core', 'package.json'),
 )
 const shellCore = requireFromShellCore('@deskwork/shell-core')
-const homeLease = requireFromShellCore('@deskwork/home-lease')
+const { createHomeSession } = requireFromShellCore('@deskwork/desktop-contracts/home-session')
 
 const {
   RecoverySessionController,
@@ -26,7 +26,6 @@ const {
   createDesktopProfileRecovery,
   createRecoveryMarkerStore,
 } = shellCore
-const { acquireHomeLease, createInProcessGuardLock } = homeLease
 
 const fixtures = []
 
@@ -44,32 +43,8 @@ async function disposeHomes() {
   for (const fixture of fixtures.splice(0)) await fixture.dispose()
 }
 
-function sameProbe() {
-  return {
-    async current() {
-      return { pid: process.pid, startIdentity: 'profile-recovery-smoke' }
-    },
-    async identify(pid) {
-      return { pid, startIdentity: 'profile-recovery-smoke' }
-    },
-    async inspect() {
-      return 'same'
-    },
-    async scanSupported() {
-      return 'none'
-    },
-  }
-}
-
 async function leasedSession(home, options) {
-  const lease = await acquireHomeLease({
-    home,
-    entrypoint: 'desktop',
-    profile: 'desktop',
-    appVersion: '0.0.0',
-    probe: sameProbe(),
-    guard: createInProcessGuardLock(),
-  })
+  const homeSession = await createHomeSession({ home: home, profile: 'desktop' })
   const inMemoryMarker = { value: undefined }
   const marker = options.markerStore ?? {
     async read() {
@@ -83,16 +58,16 @@ async function leasedSession(home, options) {
     attempts: [],
     views: [],
     surfaces: [],
-    lease,
+    session,
     controller: undefined,
   }
   session.controller = new RecoverySessionController({
-    acquireLease: async () => lease,
+    session: homeSession,
     profile: createDesktopProfileRecovery({ home, profileName: 'desktop' }),
     readRecoveryMarker: async () => marker.read(),
     writeRecoveryMarker: async (entry) => marker.write(entry),
     onHealthy: () => marker.clear?.(),
-    createAttempt: (_lease, mode) => {
+    createAttempt: (_session, mode) => {
       session.attempts.push(mode)
       return {
         start: () => options.boot(session.attempts.length, mode),
@@ -132,7 +107,7 @@ const sentinel = (name) => `# sentinel ${name}\n`
 
 // Structured evidence rows for the M2 failure matrix (acceptance record
 // §4): category, whether the session changed the profile, whether rollback
-// was granted, the manifest's before/after digests, and the host PID / lease
+// was granted, the manifest's before/after digests, and the host PID / session
 // generation the run observed.
 async function sha256File(filename) {
   const bytes = await readFile(filename).catch(() => new Uint8Array())
@@ -167,20 +142,13 @@ async function assertSentinels(home) {
 async function expectLeaseRefusal(home) {
   let refused = null
   try {
-    await acquireHomeLease({
-      home,
-      entrypoint: 'desktop',
-      profile: 'desktop',
-      appVersion: '0.0.0',
-      probe: sameProbe(),
-      guard: createInProcessGuardLock(),
-    })
+    await createHomeSession({ home: home, profile: 'desktop' })
   } catch (error) {
     refused = error
   }
   if (refused === null) throw new Error('second acquisition of a held home was not refused')
   if (!String(refused.code ?? '').includes('BUSY')) {
-    throw new Error(`lease refusal had unexpected code: ${refused.code}`)
+    throw new Error(`session refusal had unexpected code: ${refused.code}`)
   }
 }
 
@@ -214,7 +182,7 @@ try {
       beforeSha,
       afterSha: await manifestSha(home),
       sessionPid: process.pid,
-      leaseGeneration: session.lease.generation,
+      leaseGeneration: session.session.generation,
     })
     if (session.controller.state !== 'recovery') {
       throw new Error(`expected recovery state, got ${session.controller.state}`)
@@ -270,7 +238,7 @@ try {
       beforeSha,
       afterSha: await manifestSha(home),
       sessionPid: process.pid,
-      leaseGeneration: session.lease.generation,
+      leaseGeneration: session.session.generation,
     })
     if (session.controller.state !== 'recovery') throw new Error('conflict run not in recovery')
     const manifest = await readFile(path.join(home, 'profiles', 'desktop', 'package.json'), 'utf8')
@@ -301,7 +269,7 @@ try {
     if (replay.controller.state !== 'recovery') throw new Error('replay did not reach recovery')
     const view = replay.controller.getView()
     if (view.retryAllowed) throw new Error('conflict-blocked view still offers retry')
-    // The session holds the lease, so an unlock command would be refused:
+    // The session holds the session, so an unlock command would be refused:
     // the view must point at the journal instead of advertising doctor.
     if (view.doctorCommand !== null) {
       throw new Error('conflict-blocked view advertises an unlock it cannot use')
@@ -345,7 +313,7 @@ try {
       beforeSha,
       afterSha: await manifestSha(home),
       sessionPid: process.pid,
-      leaseGeneration: session.lease.generation,
+      leaseGeneration: session.session.generation,
     })
     if (session.views.length !== 0) throw new Error('healthy run showed a recovery view')
     if (session.surfaces.length !== 1) throw new Error('healthy run never mounted the surface')
@@ -382,7 +350,7 @@ try {
       })
       await session.controller.start().catch(() => undefined)
       await session.controller.act('quit')
-      lastGeneration = session.lease.generation
+      lastGeneration = session.session.generation
     }
     // 24 retained transactions pruned to exactly the 20 most recent.
     matrixRow({
@@ -528,30 +496,30 @@ try {
         beforeSha,
         afterSha: await manifestSha(home),
         sessionPid: process.pid,
-        leaseGeneration: session.lease.generation,
+        leaseGeneration: session.session.generation,
         ...(spec.producerNote === undefined ? {} : { producerNote: spec.producerNote }),
       })
       await assertSentinels(home)
       await session.controller.act('quit')
     }
 
-    // The lease category never reaches the recovery window: a second
+    // The session category never reaches the recovery window: a second
     // acquisition of a held home must be refused at the entry lifecycle.
     {
-      const home = await freshHome('matrix-lease')
+      const home = await freshHome('matrix-session')
       const session = await leasedSession(home, {
         boot: () => Promise.reject(runtimeFailure),
       })
       await session.controller.start().catch(() => undefined)
       await expectLeaseRefusal(home)
       matrixRow({
-        scenario: 'matrix-lease',
-        category: 'lease',
+        scenario: 'matrix-session',
+        category: 'session',
         changed: false,
         rollbackGranted: false,
         outcome: 'entry-lifecycle (dialog + exit code, no recovery window)',
         sessionPid: process.pid,
-        leaseGeneration: session.lease.generation,
+        leaseGeneration: session.session.generation,
       })
       await session.controller.act('quit')
     }

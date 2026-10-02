@@ -24,11 +24,7 @@ import {
   createIsolatedHomeFixture,
   type IsolatedHomeFixture,
 } from '../../../tests/helpers/isolated-home.mjs'
-import {
-  acquireHomeLease,
-  createNativeProcessProbe,
-  resolveLeaseHelperPath,
-} from '@deskwork/home-lease'
+import { createHomeSession } from '@deskwork/desktop-contracts/home-session'
 import { runDshHost, type HostControlTransport } from '../src/host-runner.js'
 import { HostSupervisor, type HostBootstrap, type ManagedHostProcess } from '../src/supervisor.js'
 
@@ -195,9 +191,9 @@ describe('real DSH Host runner', () => {
       profileName: 'deskwork',
       mode: 'normal',
       capability: 'c'.repeat(43),
-      leaseGeneration: 'lease-generation-1',
+      leaseGeneration: 'session-generation-1',
       hostIdentity: { pid: process.pid, startIdentity: 'integration-host' },
-      transport: new LoopbackTransport('c'.repeat(43), 'lease-generation-1'),
+      transport: new LoopbackTransport('c'.repeat(43), 'session-generation-1'),
     })
     try {
       expect(await readFile(marker, 'utf8')).toBe('loaded')
@@ -241,9 +237,9 @@ describe('real DSH Host runner', () => {
         profileName: 'deskwork',
         mode: 'normal',
         capability: 'c'.repeat(43),
-        leaseGeneration: 'lease-generation-1',
+        leaseGeneration: 'session-generation-1',
         hostIdentity: { pid: process.pid, startIdentity: 'integration-host' },
-        transport: new LoopbackTransport('c'.repeat(43), 'lease-generation-1'),
+        transport: new LoopbackTransport('c'.repeat(43), 'session-generation-1'),
       }),
     ).rejects.toThrow(/symlink/u)
     expect(await readdir(external)).toEqual([])
@@ -260,9 +256,9 @@ describe('real DSH Host runner', () => {
       profileName: 'deskwork',
       mode: 'normal',
       capability: 'c'.repeat(43),
-      leaseGeneration: 'lease-generation-1',
+      leaseGeneration: 'session-generation-1',
       hostIdentity: { pid: process.pid, startIdentity: 'integration-host' },
-      transport: new LoopbackTransport('c'.repeat(43), 'lease-generation-1'),
+      transport: new LoopbackTransport('c'.repeat(43), 'session-generation-1'),
     })
     const profiles = path.join(home, 'profiles')
     const name = (await readdir(profiles)).find((entry) => entry.startsWith('.dsh-desktop-run-'))!
@@ -280,7 +276,7 @@ describe('real DSH Host runner', () => {
     await reconcileDesktopProfile(ref, createIsolatedHomeAuthority(home, path.dirname(home)))
     const profileEntries = (await readdir(ref.dir)).sort()
     const capability = 'c'.repeat(43)
-    const leaseGeneration = 'lease-generation-1'
+    const leaseGeneration = 'session-generation-1'
     const transport = new LoopbackTransport(capability, leaseGeneration)
 
     const host = await runDshHost({
@@ -341,17 +337,7 @@ describe('real DSH Host runner', () => {
       createProfileRef(home, 'deskwork'),
       createIsolatedHomeAuthority(home, path.dirname(home)),
     )
-    const probe = createNativeProcessProbe({
-      helperPath: resolveLeaseHelperPath(process.env),
-      entryExecutables: [],
-    })
-    const lease = await acquireHomeLease({
-      home,
-      entrypoint: 'desktop',
-      profile: 'deskwork',
-      appVersion: '0.0.0',
-      probe,
-    })
+    const session = await createHomeSession({ home: home, profile: 'deskwork' })
     let child: ChildProcess | undefined
     const supervisor = new HostSupervisor({
       stabilityMs: 0,
@@ -372,15 +358,14 @@ describe('real DSH Host runner', () => {
       home,
       profileName: 'deskwork',
       mode: 'normal',
-      lease,
-      probe,
+      session,
+      argvPin: 'host-entry',
     })
     expect(ready.pid).not.toBe(process.pid)
     expectCompleteOfficialBootGraph(await readOfficialBootGraph(ready.surface.url))
 
     await supervisor.stop('quit', 5_000)
     await vi.waitFor(() => expect(child?.exitCode).toBe(0))
-    await lease.release()
   }, 60_000)
 
   it('boots the rc.1 Host with the narrow loopback ready contract', async () => {
@@ -389,17 +374,7 @@ describe('real DSH Host runner', () => {
       createProfileRef(home, 'deskwork'),
       createIsolatedHomeAuthority(home, path.dirname(home)),
     )
-    const probe = createNativeProcessProbe({
-      helperPath: resolveLeaseHelperPath(process.env),
-      entryExecutables: [],
-    })
-    const lease = await acquireHomeLease({
-      home,
-      entrypoint: 'desktop',
-      profile: 'deskwork',
-      appVersion: '0.0.0',
-      probe,
-    })
+    const session = await createHomeSession({ home: home, profile: 'deskwork' })
     let child: ChildProcess | undefined
     const supervisor = new HostSupervisor({
       stabilityMs: 0,
@@ -420,8 +395,8 @@ describe('real DSH Host runner', () => {
       home,
       profileName: 'deskwork',
       mode: 'normal',
-      lease,
-      probe,
+      session,
+      argvPin: 'host-entry',
     })
     expect(ready.surface.url).toMatch(/^http:\/\/127\.0\.0\.1:/u)
     expect(ready.surface.kind).toBe('loopback')
@@ -430,6 +405,5 @@ describe('real DSH Host runner', () => {
 
     await supervisor.stop('quit', 5_000)
     await vi.waitFor(() => expect(child?.exitCode).toBe(0))
-    await lease.release()
   }, 60_000)
 })

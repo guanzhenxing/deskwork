@@ -86,8 +86,6 @@ module.exports = {
     const resources = path.join(context.appOutDir, `${PRODUCT.name}.app`, 'Contents', 'Resources')
     for (const entry of [
       'runtime-host',
-      'runtime-cli',
-      'native',
       'recovery',
       'compatibility.json',
     ]) {

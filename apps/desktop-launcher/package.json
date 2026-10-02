@@ -10,9 +10,8 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@deskwork/workbench": "workspace:*",
+    "@deskwork/desktop-contracts": "workspace:*",
     "@deskwork/desktop-plugin": "workspace:*",
-    "@deskwork/home-lease": "workspace:*",
     "@deskwork/host-supervisor": "workspace:*",
     "@deskwork/product-config": "workspace:*",
     "@deskwork/profile-manager": "workspace:*",

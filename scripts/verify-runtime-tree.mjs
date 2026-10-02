@@ -2,22 +2,19 @@
 // Verify the staged runtime tree (release/staging) is complete and
 // self-contained before it is packaged:
 //
-//   - every required file exists (Host/CLI entries, web assets, package
-//     metadata, native helper, recovery assets, bundled Node/pnpm, shims);
+//   - every required file exists (Host entry, web assets, package metadata,
+//     recovery assets);
 //   - no symlink anywhere in the tree resolves outside the tree (the packaged
 //     copies must never point back at the repository or a pnpm store);
 //   - the singleton packages the DSH runtime requires (React, Cordis, dsh)
-//     resolve to exactly one realpath per closure;
+//     resolve to exactly one realpath;
 //   - native addons load under the ABI of the runtime that will use them
-//     (Electron for the Host closure, the bundled Node for the CLI closure);
-//   - the staged Node and pnpm actually run, and the CLI shim works with a
-//     scrubbed environment (no system Node/pnpm, no repo on the path).
+//     (Electron, for the Host closure).
 //
 // Usage: node scripts/verify-runtime-tree.mjs [--staging <dir>]
 import { spawnSync } from 'node:child_process'
-import { tmpdir } from 'node:os'
 import { createRequire } from 'node:module'
-import { access, constants, mkdtemp, readdir, readFile, realpath, rm, stat } from 'node:fs/promises'
+import { access, readdir, readFile, realpath, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -36,18 +33,6 @@ export const REQUIRED_STAGING_FILES = [
   'runtime-host/node_modules/.pnpm/node_modules/@deepseek-ai/dsh-web-frontend/dist/index.html',
   'runtime-host/node_modules/@deskwork/desktop-recovery-bridge/package.json',
   'runtime-host/node_modules/@deskwork/desktop-recovery-bridge/cordis.patch.yml',
-  'runtime-cli/package.json',
-  'runtime-cli/lib/index.js',
-  'runtime-cli/node_modules/@deepseek-ai/dsh/package.json',
-  'runtime-cli/node/bin/node',
-  'runtime-cli/pnpm/pnpm.cjs',
-  'runtime-cli/pnpm/bin/pnpm.mjs',
-  'runtime-cli/pnpm/dist/pnpm.mjs',
-  'runtime-cli/bin/dsh-native',
-  'runtime-cli/bin/node',
-  'runtime-cli/bin/pnpm',
-  'runtime-cli/cli-entry.mjs',
-  'native/lease-helper',
   'recovery/recovery-view.html',
   'recovery/recovery-view.js',
   'recovery/recovery-preload.cjs',
@@ -259,14 +244,7 @@ export async function verifyAddonAbis(options) {
       failures.push({ addon, runtime: 'electron' })
     }
   }
-  const nodeBinary = path.join(stagingRoot, 'runtime-cli', 'node', 'bin', 'node')
-  const cliAddons = await findNativeAddons(path.join(stagingRoot, 'runtime-cli'))
-  for (const addon of cliAddons) {
-    if (!canLoadAddon(nodeBinary, addon, process.env)) {
-      failures.push({ addon, runtime: 'bundled-node' })
-    }
-  }
-  return { failures, hostAddons: hostAddons.length, cliAddons: cliAddons.length }
+  return { failures, hostAddons: hostAddons.length }
 }
 
 async function readJson(file) {
@@ -289,8 +267,7 @@ async function main() {
   }
 
   // Watched singletons: the Host process must see exactly one Cordis/React/
-  // DSH runtime; the headless CLI closure only needs the DSH runtime itself.
-  // Uniqueness comes from the pnpm store scan; resolvability is proven from
+  // DSH runtime. Uniqueness comes from the pnpm store scan; resolvability is proven from
   // every runtime anchor that Node-imports the singletons itself — the Host
   // runner (host-supervisor) and the normal bundle (desktop-plugin). The Safe
   // Mode bundle (desktop-recovery-bridge, staged as a real directory) is
@@ -305,11 +282,6 @@ async function main() {
         'node_modules/@deskwork/host-supervisor/package.json',
         'node_modules/@deskwork/desktop-plugin/package.json',
       ],
-    },
-    'runtime-cli': {
-      unique: ['@deepseek-ai/dsh'],
-      resolve: ['@deepseek-ai/dsh'],
-      anchors: ['package.json'],
     },
   }
   for (const [closure, config] of Object.entries(closureSingletons)) {
@@ -328,7 +300,7 @@ async function main() {
     }
   }
 
-  for (const closure of ['runtime-host', 'runtime-cli']) {
+  for (const closure of ['runtime-host']) {
     for (const unmet of await findUnmetDeepseekPeers(path.join(stagingRoot, closure))) {
       errors.push(
         `closure ${closure} is missing the @deepseek-ai peer ${unmet.peer} (peered by ${unmet.peeredBy.join(', ')})`,
@@ -372,42 +344,6 @@ async function main() {
     }
   }
 
-  // The staged runtimes must run and identify their pinned versions.
-  const nodeBinary = path.join(stagingRoot, 'runtime-cli', 'node', 'bin', 'node')
-  const nodeVersion = spawnSync(nodeBinary, ['--version'], { encoding: 'utf8' })
-  if (nodeVersion.status !== 0 || !nodeVersion.stdout.trim().startsWith('v')) {
-    errors.push(`staged Node could not run (status ${nodeVersion.status})`)
-  }
-  const pnpmEntry = path.join(stagingRoot, 'runtime-cli', 'pnpm', 'pnpm.cjs')
-  const pnpmVersion = spawnSync(nodeBinary, [pnpmEntry, '--version'], { encoding: 'utf8' })
-  if (pnpmVersion.status !== 0 || pnpmVersion.stdout.trim() === '') {
-    errors.push(`staged pnpm could not run (status ${pnpmVersion.status})`)
-  }
-
-  // The CLI shim must work with a scrubbed environment: empty-ish PATH, no
-  // NODE_PATH/NODE_OPTIONS, and a neutral cwd outside the repository.
-  const shim = path.join(stagingRoot, 'runtime-cli', 'bin', 'dsh-native')
-  await access(shim, constants.X_OK).catch(() => errors.push('dsh-native shim is not executable'))
-  const isolatedHome = await mkdtemp(path.join(tmpdir(), 'dsh-shim-home-'))
-  const shimRun = spawnSync(shim, ['--version'], {
-    encoding: 'utf8',
-    cwd: '/tmp',
-    env: {
-      PATH: '/usr/bin:/bin',
-      HOME: process.env.HOME,
-      // The compatibility chain inspects whatever home the CLI targets; the
-      // gate must depend on machine-independent state only, so it points the
-      // shim at an empty isolated home (never the developer's real ~/.dsh).
-      DSH_HOME: isolatedHome,
-    },
-  })
-  if (shimRun.status !== 0) {
-    errors.push(
-      `dsh-native shim failed under a scrubbed environment (status ${shimRun.status}): ${shimRun.stderr}`,
-    )
-  }
-  await rm(isolatedHome, { recursive: true, force: true })
-
   // Native addon ABI verification needs the development Electron binary.
   const electronBinary = createRequire(path.join(root, 'apps', 'desktop-launcher', 'package.json'))(
     'electron',
@@ -423,10 +359,7 @@ async function main() {
     process.exitCode = 1
     return
   }
-  console.log(
-    `runtime tree verification passed (${abi.hostAddons} host addons, ${abi.cliAddons} cli addons verified; ` +
-      `node ${nodeVersion.stdout.trim()}, pnpm ${pnpmVersion.stdout.trim()})`,
-  )
+  console.log(`runtime tree verification passed (${abi.hostAddons} host addons verified)`)
 }
 
 const invokedDirectly = process.argv[1] === fileURLToPath(import.meta.url)

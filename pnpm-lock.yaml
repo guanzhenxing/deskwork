@@ -40,29 +40,14 @@ importers:
         specifier: 4.1.11
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@24.11.1)(vite@8.2.2(@types/node@24.11.1)(jiti@2.7.0)(yaml@2.9.0))
 
-  apps/bundled-cli:
-    dependencies:
-      '@deepseek-ai/dsh':
-        specifier: 0.2.0-rc.1
-        version: 0.2.0-rc.1(ae11ff807818e8ecba252cfc9a10cec0)
-      '@deskwork/home-lease':
-        specifier: workspace:*
-        version: link:../../packages/home-lease
-      '@deskwork/product-config':
-        specifier: workspace:*
-        version: link:../../packages/product-config
-      '@deskwork/release-compatibility':
-        specifier: workspace:*
-        version: link:../../packages/release-compatibility
-
   apps/desktop-launcher:
     dependencies:
+      '@deskwork/desktop-contracts':
+        specifier: workspace:*
+        version: link:../../packages/desktop-contracts
       '@deskwork/desktop-plugin':
         specifier: workspace:*
         version: link:../../packages/desktop-plugin
-      '@deskwork/home-lease':
-        specifier: workspace:*
-        version: link:../../packages/home-lease
       '@deskwork/host-supervisor':
         specifier: workspace:*
         version: link:../../packages/host-supervisor
@@ -78,9 +63,6 @@ importers:
       '@deskwork/shell-core':
         specifier: workspace:*
         version: link:../../packages/shell-core
-      '@deskwork/workbench':
-        specifier: workspace:*
-        version: link:../../packages/deskwork-workbench
     devDependencies:
       electron:
         specifier: 44.0.0
@@ -122,16 +104,7 @@ importers:
         specifier: workspace:*
         version: link:../desktop-contracts
 
-  packages/deskwork-workbench: {}
-
-  packages/home-lease:
-    dependencies:
-      '@deepseek-ai/dsh-atomic-write':
-        specifier: 0.2.0-rc.1
-        version: 0.2.0-rc.1(@deepseek-ai/cordis@4.0.4)
-      '@deskwork/desktop-contracts':
-        specifier: workspace:*
-        version: link:../desktop-contracts
+  packages/durable-fs: {}
 
   packages/host-supervisor:
     dependencies:
@@ -144,6 +117,9 @@ importers:
       '@deepseek-ai/dsh-app-boot':
         specifier: 0.2.0-rc.1
         version: 0.2.0-rc.1(@deepseek-ai/cordis-plugin-group@1.0.4(@deepseek-ai/cordis-plugin-loader@1.0.5)(@deepseek-ai/cordis@4.0.4))(@deepseek-ai/cordis-plugin-include@1.0.9)(@deepseek-ai/cordis-plugin-loader@1.0.5)(@deepseek-ai/cordis@4.0.4)(@deepseek-ai/dsh-home-paths@0.2.0-rc.1(@deepseek-ai/cordis@4.0.4))(@deepseek-ai/dsh-launch-environment@0.2.0-rc.1(@deepseek-ai/cordis@4.0.4))(@deepseek-ai/dsh-system-prompt@0.2.0-rc.1(@deepseek-ai/cordis@4.0.4)(@deepseek-ai/dsh-invariants@0.2.0-rc.1(@deepseek-ai/cordis@4.0.4))(@deepseek-ai/dsh-llm@0.2.0-rc.1(@deepseek-ai/cordis@4.0.4))(@deepseek-ai/dsh-scope@0.2.0-rc.1(@deepseek-ai/cordis@4.0.4)(@deepseek-ai/dsh-invariants@0.2.0-rc.1(@deepseek-ai/cordis@4.0.4))))
+      '@deepseek-ai/dsh-atomic-write':
+        specifier: 0.2.0-rc.1
+        version: 0.2.0-rc.1(@deepseek-ai/cordis@4.0.4)
       '@deepseek-ai/dsh-base':
         specifier: 0.2.0-rc.1
         version: 0.2.0-rc.1(095c75a086619c07873af1a49f307b7c)
@@ -165,12 +141,15 @@ importers:
       '@deepseek-ai/dsh-web-app':
         specifier: 0.2.0-rc.1
         version: 0.2.0-rc.1(3cdd41bb31cff41b55571dbfad97ffdd)
+      '@deepseek-ai/node-addon-system':
+        specifier: 0.1.2
+        version: 0.1.2
       '@deskwork/desktop-contracts':
         specifier: workspace:*
         version: link:../desktop-contracts
-      '@deskwork/home-lease':
+      '@deskwork/durable-fs':
         specifier: workspace:*
-        version: link:../home-lease
+        version: link:../durable-fs
     devDependencies:
       '@deskwork/profile-manager':
         specifier: workspace:*
@@ -183,27 +162,30 @@ importers:
       '@deskwork/desktop-contracts':
         specifier: workspace:*
         version: link:../desktop-contracts
-      '@deskwork/home-lease':
+      '@deskwork/durable-fs':
         specifier: workspace:*
-        version: link:../home-lease
+        version: link:../durable-fs
       '@deskwork/product-config':
         specifier: workspace:*
         version: link:../product-config
 
   packages/release-compatibility:
     dependencies:
-      '@deskwork/home-lease':
+      '@deskwork/desktop-contracts':
         specifier: workspace:*
-        version: link:../home-lease
+        version: link:../desktop-contracts
+      '@deskwork/durable-fs':
+        specifier: workspace:*
+        version: link:../durable-fs
 
   packages/shell-core:
     dependencies:
       '@deskwork/desktop-contracts':
         specifier: workspace:*
         version: link:../desktop-contracts
-      '@deskwork/home-lease':
+      '@deskwork/durable-fs':
         specifier: workspace:*
-        version: link:../home-lease
+        version: link:../durable-fs
       '@deskwork/host-supervisor':
         specifier: workspace:*
         version: link:../host-supervisor

@@ -11,7 +11,7 @@
       "path": "../desktop-contracts"
     },
     {
-      "path": "../home-lease"
+      "path": "../durable-fs"
     },
     {
       "path": "../profile-manager"

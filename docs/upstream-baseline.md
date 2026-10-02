@@ -30,7 +30,7 @@
 
 React 不在依赖闭包内：rc.2 的 Web 前端是预构建产物，React 随其自带的 bundle 提供，npm 闭包里没有 react 包（闭包对账按"声明即存在"校验）。
 
-singleton 规则：整个闭包（lockfile 与每个 staged closure）中每个受监视包只允许一个版本；Host runner（host-supervisor）与 normal bundle（desktop-plugin）是解析锚点，实测必须解析到同一 store 实例。Safe Mode bundle（desktop-recovery-bridge）由 Host 的 cordis loader 加载、自身零 Node import——它的保证来自闭包级唯一性 + 必备文件清单（含 `cordis.patch.yml`），不做解析探测。Node CLI 与 Electron Host 允许各持一份依赖树，但 native ABI 分别以 bundled Node / Electron 验证（`verify-runtime-tree`），两闭包间禁止 symlink 逃逸。
+singleton 规则：整个闭包（lockfile 与每个 staged closure）中每个受监视包只允许一个版本；Host runner（host-supervisor）与 normal bundle（desktop-plugin）是解析锚点，实测必须解析到同一 store 实例。Safe Mode bundle（desktop-recovery-bridge）由 Host 的 cordis loader 加载、自身零 Node import——它的保证来自闭包级唯一性 + 必备文件清单（含 `cordis.patch.yml`），不做解析探测。Electron Host 闭包内的 native addon ABI 以 Electron 验证（`verify-runtime-tree`），闭包禁止 symlink 逃逸。
 
 ## 3. 本地补丁账本（三问审查）
 

@@ -1,7 +1,7 @@
 # Home Compatibility Marker 协议
 
 - 状态：已实现（`packages/release-compatibility` 的最小准入链）
-- 适用入口：Desktop launcher（含 Safe Mode 会话）与 `dsh-native` CLI 的全部会写 home 的路径
+- 适用入口：Desktop launcher（含 Safe Mode 会话）的全部会写 home 的路径
 
 ## 1. 目标与非目标
 
@@ -40,7 +40,7 @@
 
 写入规则（实现：`home-marker.ts` 的 `reserveHomeWrite`）：
 
-1. 仅在持有该 home 的 lease 时执行（lease.home 必须一致）；无 lease 的透传路径从不预约；
+1. 仅在持有该 home 的 home session 时执行（session.home 必须一致）；只读路径从不预约；
 2. fsync 临时文件 + 原子 rename + 目录 fsync（与 journals/safe-profile 同一落盘纪律）；
 3. 预约发生在任何潜在新格式写入之前；预约后启动失败**不回滚 epoch**——崩溃窗口后的新格式数据必须被怀疑，而不是被当成旧数据。
 
@@ -59,14 +59,10 @@ parse marker → schemaVersion 与 dataEpoch 检查 → reserveHomeWrite（reser
 3. `marker.dataEpoch < release.dataEpoch` → `migration-required`（旧 epoch 数据不自动迁移）；
 4. 其余 → `allow`。
 
-`unknown-format` / `unreadable-format` 保留在 verdict 联合类型中供 launcher 的失败分类使用，但最小链不再产生它们。
 
 入口对拒绝的映射：
 
-- **Desktop**：`RecoverySessionController#admitHomeBeforeAnyWrite` 把拒绝变成非重试 `home-config` 失败（`HOME_MARKER_UNKNOWN` / `HOME_DATA_UNSUPPORTED` / `HOME_MIGRATION_REQUIRED` / `HOME_MARKER_UNREADABLE`），进入本地恢复页，撤下 Safe Mode 入口（Safe Mode 也要写 home，不得绕过）；lease 保持持有供诊断。
-- **CLI**：取得 lease 之后、spawn 子进程之前判定；拒绝打印原因并以退出码 5 结束，不 spawn 任何子进程。
-- **doctor**：`dsh-native doctor --unlock` 是只读诊断/清理路径，不做 admission、不写 marker。
-- 无 profile 的透传路径（帮助、版本）不取 lease，但同样过只读链（不预约）；拒绝即退出码 5，不 spawn——CLI 没有绕过面。
+- **Desktop**：`RecoverySessionController#admitHomeBeforeAnyWrite` 把拒绝变成非重试 `home-config` 失败（`HOME_MARKER_UNKNOWN` / `HOME_DATA_UNSUPPORTED` / `HOME_MIGRATION_REQUIRED` / `HOME_MARKER_UNREADABLE`），进入本地恢复页，撤下 Safe Mode 入口（Safe Mode 也要写 home，不得绕过）；home session 保持有效供诊断。
 
 ## 4. dataEpoch 语义
 
@@ -78,8 +74,8 @@ parse marker → schemaVersion 与 dataEpoch 检查 → reserveHomeWrite（reser
 
 - 该 marker 只保证"受支持入口之间"的协作：它不能阻止其他裸 CLI、旧无 guard 二进制或用户直接写入 home。
 - marker 本身不含秘密。
-- 路径校验与 lease 协议（[home-lease](home-lease.md)）仍然独立生效。
-- profile 目录命名契约（`.dsh-desktop-run-*` 运行时启动根保留前缀，由 `@deskwork/desktop-contracts/profile-name` 导出）由 profile-manager 与 home-lease 的入口闸门独立执行，与本准入无关。
+- 路径校验与 home 所有权判定仍然独立生效。
+- profile 目录命名契约（`.dsh-desktop-run-*` 运行时启动根保留前缀，由 `@deskwork/desktop-contracts/profile-name` 导出）由 profile-manager 的入口闸门独立执行，与本准入无关。
 
 ## 6. 演进
 

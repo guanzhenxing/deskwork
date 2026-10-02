@@ -4,8 +4,8 @@ import path from 'node:path'
 
 import { PRODUCT } from '@deskwork/product-config'
 
-import { isHomeLease, type ProfileWriteAuthority } from './reconcile.js'
-import type { HomeLease } from '@deskwork/home-lease'
+import { isHomeSession, type ProfileWriteAuthority } from './reconcile.js'
+import type { HomeSession } from '@deskwork/desktop-contracts/home-session'
 import type { ProfileRef } from './profile-ref.js'
 
 import {
@@ -42,12 +42,12 @@ export function sha256Of(bytes: Uint8Array | string): string {
   return createHash('sha256').update(bytes).digest('hex')
 }
 
-/** Narrow an authority to a live lease (which needs per-write assertHeld). */
-export function asLiveLease(
+/** Validate an authority against the profile it is about to write. */
+export function asWriteAuthority(
   authority: ProfileWriteAuthority,
   ref: ProfileRef,
-): HomeLease | undefined {
-  if (isHomeLease(authority)) {
+): HomeSession | undefined {
+  if (isHomeSession(authority)) {
     if (authority.home !== ref.home) {
       throw new Error('profile write authority does not match ProfileRef home')
     }
@@ -137,8 +137,9 @@ export async function planDesktopReconcile(
   ref: ProfileRef,
   authority: ProfileWriteAuthority,
 ): Promise<ProfileReconcilePlan> {
-  const lease = asLiveLease(authority, ref)
-  if (lease !== undefined) await lease.assertHeld()
+  // Validates that the authority belongs to this home; the returned session
+  // needs no further per-write proof.
+  asWriteAuthority(authority, ref)
   if (ref.name !== PRODUCT.defaultProfileName) {
     throw new Error('planDesktopReconcile only owns the app-owned profile')
   }
@@ -188,9 +189,8 @@ const encoder = new TextEncoder()
 async function pathExists(filename: string): Promise<boolean> {
   try {
     const identity = await lstat(filename)
-    if (identity.isSymbolicLink() || !identity.isFile()) {
-      throw new Error('managed profile file must be a regular file')
-    }
+    if (identity.isSymbolicLink()) throw new Error('managed profile file must not be a symlink')
+    if (!identity.isFile()) throw new Error('managed profile file must be a regular file')
     return true
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error

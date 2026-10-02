@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This pnpm workspace contains **Deskwork**, a local-first AI workbench built on the DeepSeek Harness (DSH) engine. `apps/desktop-launcher` owns Electron startup and recovery UI; `apps/bundled-cli` provides `dsh-native`. Shared product boundaries live in `packages/`: contracts, home leasing, profiles, host supervision, plugins, recovery bridge, shell core, and the `@deskwork/workbench` product bundle. Put package-local tests in `<package>/test/`; cross-process smoke drivers and fixtures are under `tests/smoke`, `tests/helpers`, and `tests/fixtures`. Architecture, protocols, and operating guidance belong in `docs/`.
+This pnpm workspace contains **Deskwork**, a desktop shell that runs the official DeepSeek Harness (DSH) Web UI in a native macOS window with its own home. `apps/desktop-launcher` owns Electron startup and recovery UI. Shared mechanism boundaries live in `packages/`: contracts, home ownership, profiles, host supervision, plugins, recovery bridge, and shell core. There is no product feature layer here — the shell boots DSH and steps out of the way; add product behavior as a DSH profile bundle (see `docs/examples/workbench-bundle.md`). Put package-local tests in `<package>/test/`; cross-process smoke drivers and fixtures are under `tests/smoke`, `tests/helpers`, and `tests/fixtures`. Architecture, protocols, and operating guidance belong in `docs/`.
 
 ## Build, Test, and Development Commands
 
@@ -15,7 +15,7 @@ corepack pnpm@11.7.0 build
 corepack pnpm@11.7.0 test:integration
 ```
 
-`check` runs formatting, lint and dependency-boundary checks, TypeScript checks, unit tests, and documentation validation. Run `pnpm build:native` before shared-home tests; it requires macOS Xcode Command Line Tools. Target focused desktop behavior with `pnpm smoke:dsh-ui`, `pnpm smoke:host-crash`, `pnpm smoke:profile-recovery`, or `pnpm smoke:safe-mode`.
+`check` runs formatting, lint and dependency-boundary checks, TypeScript checks, unit tests, and documentation validation. Building and testing need no native toolchain; only packaging does. Target focused desktop behavior with `pnpm smoke:dsh-ui`, `pnpm smoke:host-crash`, `pnpm smoke:profile-recovery`, or `pnpm smoke:safe-mode`.
 
 ## Coding Style & Naming Conventions
 
@@ -23,7 +23,7 @@ Write TypeScript as ES modules and preserve package boundaries. Prettier (two-sp
 
 ## Testing Guidelines
 
-Vitest is the main test runner, with Node's built-in test runner for boundary-script tests. Add tests beside the package behavior they cover and write contract/state-machine tests before implementation when changing protocols, leases, profiles, host lifecycle, or privileged IPC. Integration and smoke tests must use an explicit isolated `<testHome>` (the fixture refuses to run while `DESKWORK_HOME` is set); never use or delete the real `~/.dsh` (the official app's home) or `~/.deskwork` (Deskwork's own home). Run `pnpm check` for every change and the relevant integration or smoke command for process, recovery, or shared-home work.
+Vitest is the main test runner, with Node's built-in test runner for boundary-script tests. Add tests beside the package behavior they cover and write contract/state-machine tests before implementation when changing protocols, home ownership, profiles, host lifecycle, or privileged IPC. Integration and smoke tests must use an explicit isolated `<testHome>` (the fixture refuses to run while `DESKWORK_HOME` is set); never use or delete the real `~/.dsh` (the official app's home) or `~/.deskwork` (Deskwork's own home). Run `pnpm check` for every change and the relevant integration or smoke command for process or recovery work.
 
 ## Commits, Pull Requests, and Safety
 

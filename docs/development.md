@@ -10,7 +10,7 @@
 - Node.js 24.11.1；
 - pnpm 11.7.0；
 - Git 2.47 或兼容版本；
-- Xcode Command Line Tools（编译原生 lease helper 与打包）。
+- Xcode Command Line Tools（打包；运行与测试不需要）。
 
 Node engines 与上游 DSH 基线保持为 `^22.19.0 || >=24.0.0`，本仓库开发和 CI 选择固定的 24.11.1。pnpm 11.7.0 与当前 DSH 基线一致。
 
@@ -27,23 +27,21 @@ corepack pnpm@11.7.0 check
 deskwork/
 ├── .github/workflows/            # CI 门禁（check / macOS 集成与冒烟 / 候选打包）
 ├── apps/
-│   ├── desktop-launcher/         # Electron 自举入口：应用身份、窗口/托盘/菜单、恢复 UI 与打包配置
-│   └── bundled-cli/              # dsh-native 包装进程：lease、子进程身份登记与退出码契约
+│   └── desktop-launcher/         # Electron 自举入口：应用身份、窗口/托盘/菜单、恢复 UI 与打包配置
 ├── packages/
 │   ├── desktop-plugin/           # DSH bundle 插件，Desktop 产品集成主体（正常 surface 发布者）
 │   ├── desktop-recovery-bridge/  # Safe Mode 最小第一方 bundle（recovery surface 发布者）
 │   ├── desktop-contracts/        # 按能力分入口、独立版本的可序列化窄控制契约
+│   ├── durable-fs/               # 唯一的持久写原语：fsync 临时文件 + 原子 rename + 目录 fsync
 │   ├── host-supervisor/          # 独立 Host 进程创建、握手校验、稳定性窗口与有界关停
 │   ├── profile-manager/          # ProfileRef、reconcile、修订事务恢复与 Safe Mode 投影
-│   ├── home-lease/               # 整 home 排他 lease、owner 身份与 doctor 清锁
 │   ├── release-compatibility/    # home 兼容性准入：marker 最小检查与写入预约
-│   ├── product-config/           # 产品身份常量（产品名、数据目录名、CLI 名、默认 profile 名）
+│   ├── product-config/           # 产品身份常量（产品名、数据目录名、默认 profile 名）
 │   └── shell-core/               # Electron 生命周期编排、窗口、托盘、日志与恢复状态
 ├── scripts/                      # 构建与校验脚本：staging、打包、闭包/补丁对账、文档校验
-│   └── dsh-native.mjs            # dsh-native 开发入口（持 lease）
 ├── tests/
 │   ├── smoke/                    # 源码级与安装级桌面冒烟（dsh-ui/host-crash/package 等）
-│   ├── helpers/                  # 隔离 home fixture、共享 home driver、mock LLM、启动性能探针
+│   ├── helpers/                  # 隔离 home fixture、桌面 driver、mock LLM、启动性能探针
 │   ├── fixtures/                 # home 格式、插件引入与安装控制器测试夹具
 ├── build/                        # 兼容性策略、上游制品记录、electron-builder 配置与图标素材
 ├── patches/                      # 本地补丁账本（当前为空账本）
@@ -59,14 +57,12 @@ deskwork/
 | `pnpm build`                           | 构建全部 TypeScript project references                  |
 | `pnpm start`                           | 从仓库根启动桌面应用（转发到 launcher 的 `electron .`） |
 | `pnpm build:icons`                     | 从原创 SVG 生成 ICNS 与托盘模板（macOS 自带工具）       |
-| `pnpm build:native`                    | 编译原生 lease helper（需要 Xcode CLT）                 |
 | `pnpm format:check`                    | 检查格式但不修改文件                                    |
 | `pnpm lint`                            | 静态规则与依赖边界                                      |
 | `pnpm typecheck`                       | 全仓库 TypeScript 类型检查                              |
 | `pnpm test:unit`                       | 纯函数、schema、state machine 和组件单元测试            |
 | `pnpm test:integration`                | 构建后用隔离 home 启动真实 DSH Host 和官方 Web surface  |
-| `pnpm test:shared-home`                | 双向共享 home 会话接续（Desktop/CLI 互续）              |
-| `pnpm stage:runtime`                   | 物化自含 staging 闭包（Host/CLI/Node/pnpm/helper）      |
+| `pnpm stage:runtime`                   | 物化自含 staging 闭包（Host/helper/recovery 资源）      |
 | `pnpm verify:runtime-tree`             | 校验 staging 完整性、符号链接闭包、singleton 与原生 ABI |
 | `pnpm generate:compatibility`          | 生成机器可读兼容性清单                                  |
 | `pnpm verify:compatibility`            | 校验清单与依赖锁一致                                    |
@@ -74,6 +70,7 @@ deskwork/
 | `pnpm verify:patches`                  | 本地补丁账本校验                                        |
 | `pnpm package:dir`                     | icons → staging → 校验 → 未打包 `.app`（ad-hoc 签名）   |
 | `pnpm package:dmg`                     | 在 staging 之上生成 DMG 候选                            |
+| `pnpm smoke:headless`                  | 纯 Node 启动 profile 并服务官方 UI（无 Electron）       |
 | `pnpm smoke:dsh-ui`                    | 独立 Electron/Host PID 的最小官方 DSH UI 闭环           |
 | `pnpm smoke:host-crash`                | 只终止 Host，验证 launcher 恢复页与最终无残留进程       |
 | `pnpm smoke:profile-recovery`          | 修订恢复不变量                                          |
@@ -85,9 +82,8 @@ deskwork/
 | `pnpm smoke:startup-performance`       | 启动性能测量                                            |
 | `pnpm check:docs`                      | 检查必需文档、兼容性事实、本地链接与文本格式            |
 | `pnpm check`                           | 全部快速阻塞门禁                                        |
-| `pnpm dsh-native -- <args>`            | 配套 CLI 开发入口（持 lease）                           |
 
-打包固定 electron-builder 26.15.3（配置 schema 以安装包内的 app-builder-lib 为准）；Host/CLI 运行时全部来自 `release/staging`（pnpm `--prod` deploy + 官方 Node/pnpm 制品校验），`.app` 内不依赖仓库 `node_modules`、pnpm store、系统 Node/pnpm 或 ASAR 虚拟路径。
+打包固定 electron-builder 26.15.3（配置 schema 以安装包内的 app-builder-lib 为准）；Host 运行时全部来自 `release/staging`（pnpm `--prod` deploy），`.app` 内不依赖仓库 `node_modules`、pnpm store、系统 Node/pnpm 或 ASAR 虚拟路径。
 
 `pnpm smoke:package` 在安装制品（`.app`/DMG 副本）上执行，源码 smoke 不构成安装包验收。
 
@@ -145,7 +141,7 @@ issue/spec
 以下部分先写失败测试，再实现最小行为：
 
 - Host-control schema、版本协商和状态机；
-- home lease acquisition/release/doctor；
+- home lease acquisition/release；
 - `ProfileRef` 与 reconcile；
 - 修订校验恢复；
 - Host supervisor 的启动、ready、crash 和 dispose；
@@ -155,13 +151,13 @@ issue/spec
 
 ### 6.3 Fixture 与故障注入
 
-profile、lease、会话和迁移测试只使用[数据布局](data-layout.md)规定的 `<testHome>`。
+profile、home 所有权、会话和迁移测试只使用[数据布局](data-layout.md)规定的 `<testHome>`。
 
 按变更范围主动注入：
 
 - Host 在 hello、surface、ready、dispose 各阶段退出；
 - launcher 在 profile transaction 各原子边界退出；
-- stale、身份不明和 generation 不匹配 lease；
+- 陈旧 owner 记录、活锁被持有、锁被终止后释放；
 - profile SHA 被外部修改；
 - renderer 导航、origin 和 IPC 参数非法；
 - 打包环境缺少仓库 `node_modules`。
@@ -174,7 +170,7 @@ profile、lease、会话和迁移测试只使用[数据布局](data-layout.md)�
 | ----------------------- | --------------------------------------------------------------- |
 | 所有变更                | `pnpm check`、spec 验收、相关文档同步                           |
 | schema/state machine    | unit tests、双向 contract fixtures、错误/重放用例               |
-| profile/home/lease      | unit、隔离 home integration、crash recovery、真实 home 不变证明 |
+| profile/home 所有权     | unit、隔离 home integration、crash recovery、真实 home 不变证明 |
 | Host 进程               | lifecycle integration、残留进程检查、crash-loop 上限            |
 | Electron/IPC/navigation | security review、错误 sender/origin/schema 测试                 |
 | runtime/build/package   | `.app`/DMG 冒烟，不只运行开发入口                               |
@@ -222,9 +218,8 @@ profile、lease、会话和迁移测试只使用[数据布局](data-layout.md)�
 - `desktop-contracts`、`profile-manager`、`desktop-plugin`、`desktop-recovery-bridge`、`host-supervisor` 与 `shell-core` 均有自动测试；
 - Electron Main 的监督器根入口不导出 Host runner，只有独立 `host-entry` 加载 DSH；
 - `pnpm test:integration` 从独立 Node PID 验证 authenticated official boot graph；
-- `pnpm test:shared-home` 验证 Desktop/CLI 双向会话接续与互斥；
 - `pnpm smoke:dsh-ui` 验证官方 modules、侧栏、会话输入区域和设置入口；
 - `pnpm smoke:host-crash` 验证 Host 崩溃不带走 launcher，并验证最终无残留 PID；
 - 所有测试和开发启动使用显式隔离 home，不触碰默认 DSH home。
 
-引入新的进程、恢复或共享 home 行为时，先保持这些证据继续通过，再扩展对应测试。
+引入新的进程、恢复或 home 行为时，先保持这些证据继续通过，再扩展对应测试。

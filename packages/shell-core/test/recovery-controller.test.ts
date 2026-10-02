@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import type { HomeLease } from '@deskwork/home-lease'
+import { createHomeSession } from '@deskwork/desktop-contracts/home-session'
 import type { HostReady } from '@deskwork/host-supervisor'
 
 import { StartupFailureError } from '../src/recovery-controller.js'
@@ -40,33 +40,6 @@ const retryableProfileWriteFailure: StartupFailure = {
   retryable: true,
 }
 
-class RecordingLease implements HomeLease {
-  readonly home = '/tmp/recovery-home'
-  readonly generation = 'gen-1'
-  readonly calls: string[] = []
-  releaseError: Error | undefined
-
-  async assertHeld(): Promise<void> {
-    this.calls.push('assertHeld')
-  }
-  async beforeSpawn(): Promise<void> {
-    this.calls.push('beforeSpawn')
-  }
-  async attachHost(): Promise<void> {
-    this.calls.push('attachHost')
-  }
-  async confirmHostExited(): Promise<void> {
-    this.calls.push('confirmHostExited')
-  }
-  async switchProfile(nextProfile: string): Promise<void> {
-    this.calls.push(`switchProfile:${nextProfile}`)
-  }
-  async release(): Promise<void> {
-    this.calls.push('release')
-    if (this.releaseError !== undefined) throw this.releaseError
-  }
-}
-
 type ProfilePortCalls = {
   committed: string[]
   rolledBack: string[]
@@ -81,16 +54,15 @@ function fixture(
     attemptStart?: () => Promise<HostReady>
     attemptStop?: (reason: 'quit' | 'restart', deadlineMs: number) => Promise<void>
     admitHome?: () => Promise<
-      | 'allow'
-      | 'unknown-schema'
-      | 'unsupported-data'
-      | 'unknown-format'
-      | 'unreadable-format'
-      | 'migration-required'
+      'allow' | 'unknown-schema' | 'unsupported-data' | 'migration-required'
     >
   } = {},
 ) {
-  const lease = new RecordingLease()
+  const session = createHomeSession({
+    home: '/tmp/isolated-home',
+    profile: 'deskwork',
+    generation: 'session-generation-1',
+  })
   const attempts: {
     start: ReturnType<typeof vi.fn>
     stop: ReturnType<typeof vi.fn>
@@ -110,7 +82,7 @@ function fixture(
   const clock = { now: 0 }
   let nextTransaction = 0
   const controller = new RecoverySessionController({
-    acquireLease: async () => lease,
+    session,
     profile: {
       prepare: async () => {
         nextTransaction += 1
@@ -123,8 +95,8 @@ function fixture(
         portCalls.rolledBack.push(transactionId)
         return 'restored'
       },
-      retain: async (transactionId, leaseForRetain, failureForRetain) => {
-        void leaseForRetain
+      retain: async (transactionId, sessionForRetain, failureForRetain) => {
+        void sessionForRetain
         portCalls.retained.push({
           id: transactionId,
           category: failureForRetain.category,
@@ -144,7 +116,7 @@ function fixture(
       marker = entry
       portCalls.markers.push(entry)
     },
-    createAttempt: (_lease, mode) => {
+    createAttempt: (_session, mode) => {
       const start = vi.fn(options.attemptStart ?? (async () => ready))
       const stop = vi.fn(options.attemptStop ?? (async () => undefined))
       attempts.push({ start, stop, mode })
@@ -165,7 +137,6 @@ function fixture(
     attempts,
     clock,
     controller,
-    lease,
     onSessionFailure,
     portCalls,
     views,
@@ -192,17 +163,12 @@ describe('RecoverySessionController', () => {
     expect(view.retryAllowed).toBe(false)
     // Safe Mode writes a profile into the same home: it must stay blocked.
     expect(view.safeModeAllowed).toBe(false)
-    // The lease stays held for the diagnostic view and is released on quit.
+    // The session stays valid for the diagnostic view until quit.
     await setup.controller.act('quit')
     expect(setup.controller.state).toBe('stopped')
-    expect(setup.lease.calls).toContain('release')
   })
 
-  it.each([
-    ['unknown-format', 'HOME_FORMAT_UNKNOWN', /无法识别的数据形态/],
-    ['unreadable-format', 'HOME_FORMAT_UNREADABLE', /无法读取的格式版本/],
-    ['migration-required', 'HOME_MIGRATION_REQUIRED', /不会自动执行的数据迁移/],
-  ] as const)(
+  it.each([['migration-required', 'HOME_MIGRATION_REQUIRED', /不会自动执行的数据迁移/]] as const)(
     'maps the %s preflight refusal to %s with honest copy',
     async (verdict, code, summary) => {
       const setup = fixture({ admitHome: () => Promise.resolve(verdict) })
@@ -340,12 +306,15 @@ describe('RecoverySessionController', () => {
   })
 
   it('skips the automatic relaunch when the marker cannot be persisted', async () => {
-    const lease = new RecordingLease()
     let nextTransaction = 0
     const rolledBack: string[] = []
     const views: unknown[] = []
     const controller = new RecoverySessionController({
-      acquireLease: async () => lease,
+      session: createHomeSession({
+        home: '/tmp/isolated-home',
+        profile: 'deskwork',
+        generation: 'session-generation-1',
+      }),
       profile: {
         prepare: async () => {
           nextTransaction += 1
@@ -385,11 +354,14 @@ describe('RecoverySessionController', () => {
   })
 
   it('skips the automatic relaunch when the marker cannot be read', async () => {
-    const lease = new RecordingLease()
     let nextTransaction = 0
     const rolledBack: string[] = []
     const controller = new RecoverySessionController({
-      acquireLease: async () => lease,
+      session: createHomeSession({
+        home: '/tmp/isolated-home',
+        profile: 'deskwork',
+        generation: 'session-generation-1',
+      }),
       profile: {
         prepare: async () => {
           nextTransaction += 1
@@ -426,10 +398,14 @@ describe('RecoverySessionController', () => {
   })
 
   it('sanitizes summaries of plain exceptions through the fallback classifier', async () => {
-    const lease = new RecordingLease()
+    const session = createHomeSession({
+      home: '/tmp/isolated-home',
+      profile: 'deskwork',
+      generation: 'session-generation-1',
+    })
     const views: unknown[] = []
     const controller = new RecoverySessionController({
-      acquireLease: async () => lease,
+      session,
       profile: {
         prepare: async () => ({ kind: 'ready', changed: false }),
         settleCommitted: async () => undefined,
@@ -447,7 +423,7 @@ describe('RecoverySessionController', () => {
       // path failing must not leak either into the recovery view.
       loadSurface: async () => {
         throw new Error(
-          `failed to load ${lease.home}/profiles/desktop with token=super-secret-value`,
+          `failed to load ${session.home}/profiles/desktop with token=super-secret-value`,
         )
       },
       window: {
@@ -460,19 +436,22 @@ describe('RecoverySessionController', () => {
     await expect(controller.start()).rejects.toThrow(/failed to load/u)
     const view = controller.getView()
     expect(view.failure.summary).not.toContain('super-secret-value')
-    expect(view.failure.summary).not.toContain(lease.home)
+    expect(view.failure.summary).not.toContain(session.home)
     expect(view.failure.summary).toContain('token=<redacted>')
   })
 
   it('a rollback conflict keeps the journal, blocks retry, and never poisons safe mode', async () => {
-    const lease = new RecordingLease()
     const views: unknown[] = []
     let nextTransaction = 0
     const rolledBack: string[] = []
     const retained: { id: string }[] = []
     const committed: string[] = []
     const controller = new RecoverySessionController({
-      acquireLease: async () => lease,
+      session: createHomeSession({
+        home: '/tmp/isolated-home',
+        profile: 'deskwork',
+        generation: 'session-generation-1',
+      }),
       profile: {
         prepare: async () => {
           nextTransaction += 1
@@ -491,7 +470,7 @@ describe('RecoverySessionController', () => {
         enterSafeMode: async () => 'prepared',
         exitSafeMode: async () => undefined,
       },
-      createAttempt: (_lease, mode) =>
+      createAttempt: (_session, mode) =>
         ({
           start:
             mode === 'safe'
@@ -549,7 +528,11 @@ describe('RecoverySessionController', () => {
     const views: unknown[] = []
     let portThrows = true
     const controller = new RecoverySessionController({
-      acquireLease: async () => new RecordingLease(),
+      session: createHomeSession({
+        home: '/tmp/isolated-home',
+        profile: 'deskwork',
+        generation: 'session-generation-1',
+      }),
       profile: {
         prepare: async () => ({ kind: 'ready', changed: false }),
         settleCommitted: async () => undefined,
@@ -610,51 +593,14 @@ describe('RecoverySessionController', () => {
     expect(setup.controller.getView().retryAllowed).toBe(true)
   })
 
-  it('quit wins a race against retry and releases the lease once', async () => {
+  it('quit wins a race against retry', async () => {
     const setup = fixture({
       attemptStart: () => Promise.reject(new StartupFailureError(failure)),
     })
     await expect(setup.controller.start()).rejects.toBeInstanceOf(StartupFailureError)
     await Promise.all([setup.controller.act('retry'), setup.controller.act('quit')])
     expect(setup.controller.state).toBe('stopped')
-    expect(setup.lease.calls.filter((call) => call === 'release')).toHaveLength(1)
     expect(setup.attempts.length).toBeGreaterThan(0)
-  })
-
-  it('reports lease release failures but still completes the stop chain', async () => {
-    const setup = fixture({
-      attemptStart: () => Promise.reject(new StartupFailureError(failure)),
-    })
-    const reported: unknown[] = []
-    const controller = new RecoverySessionController({
-      acquireLease: async () => setup.lease,
-      profile: {
-        prepare: async () => ({ kind: 'ready', changed: false }),
-        settleCommitted: async () => undefined,
-        rollback: async () => 'restored',
-        retain: async () => undefined,
-        enterSafeMode: async () => 'prepared',
-        exitSafeMode: async () => undefined,
-      },
-      createAttempt: () => {
-        const stub = {
-          start: vi.fn(async () => Promise.reject(new StartupFailureError(failure))),
-          stop: vi.fn(async () => undefined),
-        }
-        return stub as unknown as HostAttempt
-      },
-      loadSurface: async () => undefined,
-      window: {
-        showRecoveryView: async () => undefined,
-        destroySurface: () => undefined,
-      },
-      onLeaseReleaseError: (error) => reported.push(error),
-    })
-    await expect(controller.start()).rejects.toBeInstanceOf(StartupFailureError)
-    setup.lease.releaseError = new Error('host identity unknown')
-    await controller.act('quit')
-    expect(reported).toHaveLength(1)
-    expect(controller.state).toBe('stopped')
   })
 
   it('maps unknown thrown errors to a sanitized fallback failure', async () => {
@@ -686,10 +632,13 @@ describe('RecoverySessionController', () => {
   })
 
   it('withdraws the safe-mode entry when the safe profile conflicts', async () => {
-    const lease = new RecordingLease()
     const views: unknown[] = []
     const controller = new RecoverySessionController({
-      acquireLease: async () => lease,
+      session: createHomeSession({
+        home: '/tmp/isolated-home',
+        profile: 'deskwork',
+        generation: 'session-generation-1',
+      }),
       profile: {
         prepare: async () => ({ kind: 'ready', changed: false }),
         settleCommitted: async () => undefined,
@@ -748,7 +697,7 @@ describe('RecoverySessionController', () => {
     expect(setup.attempts).toHaveLength(2)
   })
 
-  it('awaits an in-flight renderer-crash stop before releasing the lease', async () => {
+  it('awaits an in-flight renderer-crash stop before completing quit', async () => {
     let releaseStop: (() => void) | undefined
     const stopGate = new Promise<void>((resolve) => {
       releaseStop = resolve
@@ -770,15 +719,14 @@ describe('RecoverySessionController', () => {
       retryable: true,
     })
     await new Promise((resolve) => setTimeout(resolve, 0))
-    // Quit arrives while that stop is still in flight.
+    // Quit arrives while that stop is still in flight, and must wait for it.
     const quitting = setup.controller.act('quit')
     await new Promise((resolve) => setTimeout(resolve, 0))
-    expect(setup.lease.calls).not.toContain('release')
+    expect(stopSettled).toBe(false)
     releaseStop?.()
     await Promise.all([crashing, quitting])
     expect(stopSettled).toBe(true)
     expect(setup.controller.state).toBe('stopped')
-    expect(setup.lease.calls).toContain('release')
   })
 
   it('ignores a renderer crash while not healthy or already quitting', async () => {

@@ -1,4 +1,4 @@
-import type { HomeLease } from '@deskwork/home-lease'
+import type { HomeSession } from '@deskwork/desktop-contracts/home-session'
 import path from 'node:path'
 
 import type { ProfileRef } from './profile-ref.js'
@@ -21,12 +21,11 @@ export type RecoveryOutcome = 'clean' | 'restored' | 'conflict' | 'needs-review'
  */
 export async function recoverInterruptedTransactions(
   ref: ProfileRef,
-  lease: HomeLease,
+  session: HomeSession,
 ): Promise<RecoveryOutcome> {
-  if (lease.home !== ref.home) {
-    throw new Error('recovery requires a lease bound to the transaction home')
+  if (session.home !== ref.home) {
+    throw new Error('recovery requires a session bound to the transaction home')
   }
-  await lease.assertHeld()
 
   let sawRestored = false
   const outcome = (candidate: RecoveryOutcome): RecoveryOutcome => {
@@ -36,8 +35,8 @@ export async function recoverInterruptedTransactions(
     return sawRestored ? 'restored' : 'clean'
   }
 
-  for (const id of await readdirTransactionIds(lease.home)) {
-    const journal = await readJournal(lease.home, id)
+  for (const id of await readdirTransactionIds(session.home)) {
+    const journal = await readJournal(session.home, id)
     if (journal === 'missing') continue
     // A corrupt journal of unknown ownership is still ours to worry about:
     // needs-review, never silently skipped.
@@ -62,7 +61,7 @@ export async function recoverInterruptedTransactions(
     }
     // prepared / applying / rolling-back: writes never completed a boot;
     // restore idempotently. A rolled-back-by-someone-else journal is fine.
-    const result = await rollbackProfileTransaction(id, lease)
+    const result = await rollbackProfileTransaction(id, session)
     if (result === 'conflict') return outcome('conflict')
     sawRestored = true
   }

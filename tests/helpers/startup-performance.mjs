@@ -198,7 +198,7 @@ export async function runStartupPerformance({ artifact, identity }) {
   const userData = await mkdtemp(path.join(tmpdir(), 'dsh-desktop-m0-smoke-startup-perf-'))
   const home = path.join(userData, 'home')
   await mkdir(home, { recursive: true, mode: 0o700 })
-  const lockPath = path.join(home, 'run', 'host.lock')
+  const lockPath = path.join(home, 'run', 'host-owner.json')
   const waitLeaseGone = async () => {
     const deadline = Date.now() + 30_000
     for (;;) {
@@ -207,7 +207,7 @@ export async function runStartupPerformance({ artifact, identity }) {
         .catch((error) => error.code === 'ENOENT')
       if (gone) return
       if (Date.now() > deadline) {
-        throw new Error('startup-performance: home lease survived the app exit')
+        throw new Error('startup-performance: host owner record survived the app exit')
       }
       await sleep(200)
     }

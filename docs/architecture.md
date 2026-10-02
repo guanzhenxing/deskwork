@@ -22,7 +22,6 @@ macOS
 └── Electron desktop-launcher
     ├── BrowserWindow / Tray / Dock / Menu
     ├── launcher-owned recovery control plane
-    ├── home-lease
     ├── profile-manager
     └── host-supervisor
         └── Node-capable DSH Host runner
@@ -34,8 +33,6 @@ macOS
                 ├── remote-access
                 └── desktop-updater
 ```
-
-配套 CLI `dsh-native` 是独立入口：包装进程持有同一 home lease，在 lease 上登记子进程身份后才授权官方 DSH CLI 子进程启动（见 [home-lease 协议](protocols/home-lease.md)）。
 
 Electron renderer 只加载 Host 发布的 authenticated loopback URL。Host runner 与 launcher 通过 [Host-control 1.0](protocols/host-control.md) 通信，不解析 stdout 文案。
 
@@ -80,11 +77,7 @@ Electron renderer 只加载 Host 发布的 authenticated loopback URL。Host run
 - 不包含市场、profile 修改、产品设置或更新策略；
 - 不导入 Electron。
 
-`packages/deskwork-workbench`：
-
-- 产品工作台 bundle：官方侧栏入口与工作台面板（客户端半 + 空 host 半）；
-- 经 bundle patch 的 Loader 行进入客户端组合；
-- 产品功能按方案在此模式旁逐台扩展。
+产品层不在本仓库。壳只负责启动 DSH 并让路：`deskwork` profile 的组合是 `dsh-base`、`dsh-web-app` 与 `desktop-plugin` 三者。将来若要在该 profile 中加入产品界面，按 [bundle 样例](examples/workbench-bundle.md)以独立 bundle 的形式加入，不进壳的依赖图。
 
 ### 4.3 通用机制包
 
@@ -108,19 +101,18 @@ Electron renderer 只加载 Host 发布的 authenticated loopback URL。Host run
 - 唯一拥有 `ProfileRef`、reconcile、修订恢复和 Safe Mode 投影规则；
 - 以后唯一拥有 generation ledger、事务 journal 和 drift 处理（见数据布局的迁移原则）；；
 - 不依赖 Electron，也不启动 Host；
-- 共享 home 写入要求调用方持有对应 home lease；隔离冒烟入口使用绑定 `<userData>` 下专属隔离 home 的 authority；
+- home 写入要求调用方持有该 home 的 home session；隔离冒烟入口使用绑定 `<userData>` 下专属隔离 home 的 authority；
 - 隔离 authority 下唯一写入的 profile 文件是 manifest、用户 patch 模板与 profile workspace 配置；Host runner 不成为这些文件的第二权威。
 
-`packages/home-lease`：
+`packages/host-supervisor` 的 `host-owner`：
 
-- 通过原子目录创建拥有 home writer lease；
-- 记录 supervisor 与 Host 身份；
-- 提供诊断和受控 stale recovery；
-- 不按 lock 年龄猜测 owner 已失效。
+- 定义唯一一份 home 所有权的两端：Host 进程持有的内核 `flock`（存活性权威）与 `<home>/run/host-owner.json`（可达性与诊断）；
+- 启动前判定孤儿 Host：锁空闲即接管并清理陈旧记录，锁被持有则按记录终止，终止不掉即拒绝启动；
+- 不按时间或年龄推断锁是否失效——判据只有内核是否仍持有它。
 
 `packages/shell-core`：
 
-- 编排 `home-lease`、`profile-manager`、`host-supervisor` 与 Electron 资源；
+- 编排 `home-owner` 的启动判定、`profile-manager`、`host-supervisor` 与 Electron 资源；
 - 管理窗口、托盘、菜单、日志和恢复状态；
 - 不直接成为 profile 或 Host 状态的第二权威。
 
@@ -129,7 +121,6 @@ Electron renderer 只加载 Host 发布的 authenticated loopback URL。Host run
 ```text
 desktop-launcher
   → shell-core
-      → home-lease
       → profile-manager
       → host-supervisor
       → desktop-contracts/host-control
@@ -150,10 +141,11 @@ desktop-recovery-bridge
 ```text
 launcher identity/single-instance
 → resolve DSH home
-→ acquire home lease
+→ settle any orphan Host, then create the home session
 → home compatibility admission（marker 的 schemaVersion 与 dataEpoch 检查；写入预约随首次写入，见协议）
 → profile-manager snapshots and reconciles ProfileRef("deskwork")
 → host-supervisor creates private channel and Host runner
+→ the Host process takes <home>/run/host.lock for its lifetime
 → Host runner boots DSH and injects desktopSurface proxy
 → desktop-plugin obtains authenticated connection URL
 → desktop-plugin publishes normal surface
@@ -169,7 +161,7 @@ Host-control `ready` 只说明 Host 和 surface publisher 已完成协议侧就�
 Safe Mode 是不加载正常 profile 组合的最小恢复会话，也是未来插件市场的前置能力：
 
 ```text
-launcher keeps the same home lease
+launcher keeps the same home session
 → normal Host is fully stopped
 → profile-manager prepares desktop-safe-mode
 → Host boots dsh-base + dsh-web-app + desktop-recovery-bridge
@@ -184,7 +176,7 @@ Safe Mode 不读取正常 profile 的 `desktop-plugin`、第三方 bundle、依�
 
 | 状态                | 唯一权威                                | 物化或读取者                      |
 | ------------------- | --------------------------------------- | --------------------------------- |
-| 活跃 Host 进程      | `host-supervisor` + home lease owner    | launcher、bundled CLI             |
+| 活跃 Host 进程      | `host-supervisor` + the home lock       | launcher                          |
 | profile 规则与事务  | `profile-manager`                       | launcher、市场 UI、Safe Mode      |
 | DSH 会话和 storages | DSH providers                           | 本地及未来远程客户端              |
 | Electron 窗口状态   | launcher userData                       | `shell-core`                      |

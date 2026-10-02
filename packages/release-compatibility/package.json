@@ -14,6 +14,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@deskwork/home-lease": "workspace:*"
+    "@deskwork/desktop-contracts": "workspace:*",
+    "@deskwork/durable-fs": "workspace:*"
   }
 }

@@ -17,7 +17,6 @@ const requiredDocuments = [
   'docs/upstream-baseline.md',
   'docs/protocols/home-compatibility.md',
   'docs/protocols/host-control.md',
-  'docs/protocols/home-lease.md',
   'docs/protocols/startup-recovery.md',
 ]
 

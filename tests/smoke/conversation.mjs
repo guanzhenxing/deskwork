@@ -12,7 +12,7 @@ import {
   listSessions,
   waitForTurns,
   withDesktop,
-} from '../helpers/shared-home-driver.mjs'
+} from '../helpers/desktop-driver.mjs'
 
 await ensureLauncherBuilt()
 const fixture = await createSharedHomeFixture()
@@ -47,14 +47,14 @@ try {
     'conversation',
   )
 
-  // The complete exit must release the home lease: the next launch boots
+  // A complete exit leaves no live owner record: the next launch boots
   // cleanly against the same home.
-  const lock = path.join(fixture.home, 'run', 'host.lock')
+  const lock = path.join(fixture.home, 'run', 'host-owner.json')
   const leftover = await access(lock)
     .then(() => 'present')
     .catch((error) => (error.code === 'ENOENT' ? undefined : 'unreadable'))
   if (leftover !== undefined) {
-    throw new Error(`home lease survived the full Desktop exit (${leftover})`)
+    throw new Error(`host owner record survived the full Desktop exit (${leftover})`)
   }
 
   // Second launch: the official surface lists and continues the same session.

@@ -1,6 +1,6 @@
-import { randomUUID } from 'node:crypto'
-import { open, readFile, rename, unlink } from 'node:fs/promises'
-import path from 'node:path'
+import { readFile } from 'node:fs/promises'
+
+import { writeAtomicDurable } from '@deskwork/durable-fs'
 
 export type Rect = Readonly<{ x: number; y: number; width: number; height: number }>
 export type SavedWindowState = Readonly<{ bounds: Rect; maximized: boolean }>
@@ -132,29 +132,5 @@ export async function writeWindowState(file: string, state: SavedWindowState): P
     undefined,
     2,
   )}\n`
-  // Random exclusive temp name: a predictable `<file>.<pid>.tmp` path with
-  // 'w' lets a pre-planted symlink at that path redirect the write (and
-  // truncate its target). 'wx' + randomUUID never follows or clobbers.
-  const temporary = path.join(path.dirname(file), `.${path.basename(file)}.${randomUUID()}.tmp`)
-  try {
-    const handle = await open(temporary, 'wx', 0o600)
-    try {
-      await handle.writeFile(payload, 'utf8')
-      await handle.sync()
-    } finally {
-      await handle.close()
-    }
-    await rename(temporary, file)
-    // fsync the containing directory so the rename itself survives power
-    // loss — the same durability bar the recovery marker store applies.
-    const directory = await open(path.dirname(file), 'r')
-    try {
-      await directory.sync()
-    } finally {
-      await directory.close()
-    }
-  } catch (error) {
-    await unlink(temporary).catch(() => undefined)
-    throw error
-  }
+  await writeAtomicDurable(file, Buffer.from(payload, 'utf8'))
 }

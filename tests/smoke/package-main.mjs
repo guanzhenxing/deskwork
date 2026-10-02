@@ -17,7 +17,6 @@ import {
   installTerminationHandlers,
   installFromDmg,
   runInstalledApp,
-  runInstalledCli,
 } from '../helpers/installed-app.mjs'
 import {
   createSharedHomeFixture,
@@ -25,7 +24,7 @@ import {
   driveOneTurn,
   listSessions,
   waitForTurns,
-} from '../helpers/shared-home-driver.mjs'
+} from '../helpers/desktop-driver.mjs'
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const driverPath = path.join(repositoryRoot, 'tests', 'fixtures', 'installed-controller-driver.mjs')
@@ -308,7 +307,7 @@ function lifecycleScenario(install) {
           )
           // The full quit must release the home lease (same bar as the dev
           // lifecycle smoke and the conversation scenario).
-          await waitForLeaseGone(fixture.home)
+          await waitForOwnerRecordGone(fixture.home)
         },
       })
     } finally {
@@ -409,7 +408,7 @@ function conversationScenario(install) {
           await waitForTurns(created.file, 1)
         },
       })
-      await waitForLeaseGone(fixture.home)
+      await waitForOwnerRecordGone(fixture.home)
       await runInstalledApp({
         executable: install.executable,
         mode: 'conversation',
@@ -436,111 +435,6 @@ function conversationScenario(install) {
       if (target === undefined) throw new Error('session vanished')
       const turns = await waitForTurns(target.file, 2)
       if (turns !== 2) throw new Error(`expected 2 turns, got ${turns}`)
-    } finally {
-      await fixture.dispose()
-    }
-  }
-}
-
-function sharedHomeScenario(install) {
-  return async () => {
-    // Desktop creates, the installed CLI continues; then the reverse.
-    const fixture = await createSharedHomeFixture()
-    try {
-      let sessionId
-      await runInstalledApp({
-        executable: install.executable,
-        mode: 'conversation',
-        userData: fixture.userData,
-        cwd: fixture.cwd,
-        timeoutMs: 300_000,
-        async action({ waitFor }) {
-          const ready = await waitFor((report) => report.kind === 'ui-ready', 'ui-ready')
-          const client = await createWebApiClient(ready.surfaceUrl)
-          sessionId = await driveOneTurn(client, {
-            cwd: fixture.cwd,
-            text: 'desktop creates for the cli',
-          })
-          const created = await waitForSessionFile(fixture.home, sessionId)
-          await waitForTurns(created.file, 1)
-        },
-      })
-      const cliContinued = await runInstalledCli(
-        install.cliEntry,
-        ['--profile', 'headless', 'continue from the installed cli'],
-        { home: fixture.home, cwd: fixture.cwd },
-      )
-      if (cliContinued.code !== 0) {
-        throw new Error(
-          `installed cli could not continue the desktop session (${cliContinued.code}): ${cliContinued.output.slice(-400)}`,
-        )
-      }
-      const sessions = await listSessions(fixture.home)
-      const target = sessions.find((session) => session.header.id === sessionId)
-      if (target === undefined) throw new Error('cli continuation lost the session')
-      await waitForTurns(target.file, 2)
-    } finally {
-      await fixture.dispose()
-    }
-  }
-}
-
-function cliBusyScenario(install) {
-  return async () => {
-    const fixture = await createSharedHomeFixture()
-    try {
-      await runInstalledApp({
-        executable: install.executable,
-        mode: 'shared-home',
-        userData: fixture.userData,
-        cwd: fixture.cwd,
-        timeoutMs: 300_000,
-        async action({ waitFor }) {
-          // The lease exists only once the app booted; racing the CLI before
-          // ui-ready lets the CLI win the lock instead of being refused.
-          await waitFor((report) => report.kind === 'ui-ready', 'ui-ready')
-          // While the installed app holds the lease, the CLI must be refused
-          // before booting, and doctor --unlock must refuse to clean a live
-          // owner.
-          const busy = await runInstalledCli(
-            install.cliEntry,
-            ['--profile', 'headless', 'must-not-boot'],
-            { home: fixture.home, cwd: fixture.cwd },
-          )
-          if (busy.code !== 3) {
-            throw new Error(`busy refusal exit ${busy.code}: ${busy.output.slice(-300)}`)
-          }
-          if (!busy.output.includes('cannot use this home')) {
-            throw new Error('busy refusal did not explain the lease')
-          }
-          const doctor = await runInstalledCli(install.cliEntry, ['doctor', '--unlock'], {
-            home: fixture.home,
-            cwd: fixture.cwd,
-          })
-          if (doctor.code === 0 && /clean|unlock|removed/i.test(doctor.output)) {
-            throw new Error('doctor unlocked a home with a live owner')
-          }
-        },
-      })
-    } finally {
-      await fixture.dispose()
-    }
-  }
-}
-
-function cliDoctorScenario(install) {
-  return async () => {
-    const fixture = await makeControllerHome('doctor')
-    try {
-      const doctor = await runInstalledCli(install.cliEntry, ['doctor', '--unlock'], {
-        home: fixture.home,
-        cwd: fixture.userData,
-      })
-      if (doctor.code !== 0) {
-        throw new Error(
-          `doctor on an idle home exited ${doctor.code}: ${doctor.output.slice(-300)}`,
-        )
-      }
     } finally {
       await fixture.dispose()
     }
@@ -597,104 +491,16 @@ function recoveryScenario(install) {
         'utf8',
       )
       if (patchBytes !== poisonPatch) throw new Error('the poisoned user patch was modified')
-      // The lease must be gone after the scripted quit.
-      await waitForLeaseGone(fixture.home)
+      // The owner record must be cleared after the scripted quit.
+      await waitForOwnerRecordGone(fixture.home)
     } finally {
       await fixture.dispose()
     }
   }
 }
 
-function cliVersionScenario(install) {
-  return async () => {
-    const cwd = await mkdtemp(path.join(tmpdir(), 'dsh-cli-cwd-'))
-    // An isolated empty home: the passthrough admission must never resolve —
-    // and therefore never read — the user's real ~/.dsh (an unset DESKWORK_HOME
-    // makes the bundled CLI fall back to it).
-    const home = await mkdtemp(path.join(tmpdir(), 'dsh-cli-home-'))
-    try {
-      const compatibility = JSON.parse(
-        await readFile(path.join(repositoryRoot, 'docs', 'compatibility.json'), 'utf8'),
-      )
-      const version = await runInstalledCli(install.cliEntry, ['--version'], { cwd, home })
-      if (version.code !== 0) throw new Error(`--version exited ${version.code}`)
-      if (!version.output.includes(compatibility.dsh.npmVersion)) {
-        throw new Error(
-          `--version output does not carry the pinned DSH version ${compatibility.dsh.npmVersion}: ${version.output.trim().slice(0, 120)}`,
-        )
-      }
-    } finally {
-      await rm(cwd, { recursive: true, force: true })
-      await rm(home, { recursive: true, force: true })
-    }
-  }
-}
-
-function cliPluginScenario(install) {
-  return async () => {
-    const fixture = await makeControllerHome('plugin')
-    const fixturePackage = path.join(fixture.userData, 'local-plugin')
-    try {
-      await mkdir(fixturePackage, { recursive: true })
-      await writeFile(
-        path.join(fixturePackage, 'package.json'),
-        `${JSON.stringify(
-          {
-            name: '@fixture/local-plugin',
-            version: '1.0.0',
-            private: true,
-            // Without this declaration upstream reconciles the package as a
-            // plain dependency (with a warning) instead of a profile bundle.
-            dsh: { bundle: { patch: './cordis.patch.yml' } },
-          },
-          undefined,
-          2,
-        )}\n`,
-      )
-      await writeFile(
-        path.join(fixturePackage, 'cordis.patch.yml'),
-        '# Minimal first-party fixture patch for the artifact-level plugin smoke.\n[]\n',
-      )
-      const added = await runInstalledCli(
-        install.cliEntry,
-        ['plugin', '--profile', 'deskwork', 'add', fixturePackage],
-        { home: fixture.home, cwd: fixture.userData, timeoutMs: 240_000 },
-      )
-      if (added.code !== 0) {
-        throw new Error(`plugin add exited ${added.code}: ${added.output.slice(-500)}`)
-      }
-      const manifest = JSON.parse(
-        await readFile(path.join(fixture.home, 'profiles', 'deskwork', 'package.json'), 'utf8'),
-      )
-      if (manifest.dependencies?.['@fixture/local-plugin'] === undefined) {
-        throw new Error('plugin add did not record the fixture dependency')
-      }
-      if (!manifest.dsh?.profile?.bundles?.includes('@fixture/local-plugin')) {
-        throw new Error('plugin add did not reconcile the bundle list')
-      }
-      const installedPackage = path.join(
-        fixture.home,
-        'profiles',
-        'deskwork',
-        'node_modules',
-        '@fixture',
-        'local-plugin',
-        'package.json',
-      )
-      await readFile(installedPackage)
-    } finally {
-      await fixture.dispose()
-    }
-  }
-}
-
-/**
- * The app exits 0 only after its quit chain released the lease, but the
- * lock directory removal lands on disk a moment later; wait briefly and
- * dump the owner if it truly persists.
- */
-async function waitForLeaseGone(home, timeoutMs = 10_000) {
-  const lock = path.join(home, 'run', 'host.lock')
+async function waitForOwnerRecordGone(home, timeoutMs = 10_000) {
+  const lock = path.join(home, 'run', 'host-owner.json')
   const deadline = Date.now() + timeoutMs
   for (;;) {
     const gone = await access(lock)
@@ -702,10 +508,8 @@ async function waitForLeaseGone(home, timeoutMs = 10_000) {
       .catch((error) => error.code === 'ENOENT')
     if (gone) return true
     if (Date.now() > deadline) {
-      const owner = await readFile(path.join(lock, 'owner.json'), 'utf8').catch(
-        () => '<unreadable>',
-      )
-      throw new Error(`home lease survived the app exit; owner: ${owner.slice(0, 300)}`)
+      const owner = await readFile(lock, 'utf8').catch(() => '<unreadable>')
+      throw new Error(`host owner record survived the app exit: ${owner.slice(0, 300)}`)
     }
     await new Promise((resolve) => sleepTimer(resolve, 250))
   }
@@ -763,11 +567,6 @@ try {
   await record('installed-lifecycle', lifecycleScenario(install))
   await record('installed-auth', authScenario(install))
   await record('installed-conversation', conversationScenario(install))
-  await record('installed-shared-home', sharedHomeScenario(install))
-  await record('installed-cli-version', cliVersionScenario(install))
-  await record('installed-cli-busy', cliBusyScenario(install))
-  await record('installed-cli-doctor', cliDoctorScenario(install))
-  await record('installed-cli-plugin', cliPluginScenario(install))
   await record('installed-recovery', recoveryScenario(install))
   await record('installed-controller-recovery', () =>
     runControllerScenario(install, 'recovery-chain'),

@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@deskwork/desktop-contracts": "workspace:*",
-    "@deskwork/home-lease": "workspace:*",
+    "@deskwork/durable-fs": "workspace:*",
     "@deskwork/product-config": "workspace:*"
   }
 }

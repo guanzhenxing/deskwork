@@ -10,7 +10,7 @@ import { setTimeout as sleepTimer } from 'node:timers'
 import { fileURLToPath } from 'node:url'
 
 import { createDesktopSmokeRoot } from '../helpers/desktop-smoke-root.mjs'
-import { ensureLauncherBuilt, waitUntilDead, withDesktop } from '../helpers/shared-home-driver.mjs'
+import { ensureLauncherBuilt, waitUntilDead, withDesktop } from '../helpers/desktop-driver.mjs'
 
 await ensureLauncherBuilt()
 const root = await createDesktopSmokeRoot()
@@ -78,11 +78,12 @@ try {
       const ready = reports.find((report) => report.kind === 'ui-ready')
       for (const pid of [ready.launcherPid, ready.hostPid]) await waitUntilDead(pid, 20_000)
 
-      const lock = path.join(root.home, 'run', 'host.lock')
+      const lock = path.join(root.home, 'run', 'host-owner.json')
       const leftover = await access(lock)
         .then(() => 'present')
         .catch((error) => (error.code === 'ENOENT' ? undefined : 'unreadable'))
-      if (leftover !== undefined) throw new Error(`home lease survived the quit (${leftover})`)
+      if (leftover !== undefined)
+        throw new Error(`host owner record survived the quit (${leftover})`)
 
       console.log('M3 lifecycle smoke passed')
     },

@@ -29,6 +29,7 @@ import {
   type DesktopSurfaceService,
 } from '@deskwork/desktop-contracts/host-control'
 
+import { tryAcquireHostLock, type HostLock } from './host-owner.js'
 import { createRuntimeRoot, type RuntimeRoot } from './runtime-root.js'
 import { assertBootProfile, type BootMode } from './boot-profile.js'
 
@@ -145,6 +146,7 @@ export async function runDshHost(options: RunDshHostOptions): Promise<DshHostHan
   let disposePromise: Promise<void> | undefined
   let surfaceId: string | undefined
   let runtimeRoot: RuntimeRoot | undefined
+  let hostLock: HostLock | undefined
   let runtimeResolution: RuntimeResolution | undefined
   let originalDshHome = process.env.DSH_HOME
   const originalCwd = process.cwd()
@@ -174,6 +176,8 @@ export async function runDshHost(options: RunDshHostOptions): Promise<DshHostHan
         await activeContext?.fiber.dispose()
         await cleanupRuntimeRoot()
       } finally {
+        await hostLock?.release()
+        hostLock = undefined
         protocolState = 'disposed'
         restoreEnvironment()
       }
@@ -263,6 +267,16 @@ export async function runDshHost(options: RunDshHostOptions): Promise<DshHostHan
     // projections), profile resolution, home patch parsing, the Cordis boot
     // itself, and surface publication. Attribution no stage can make stays
     // BOOT_FAILED/unknown.
+    // The Host holds the home lock for its whole lifetime: the kernel drops
+    // it when this process dies for any reason, which is what makes a
+    // leftover Host detectable without any pid bookkeeping.
+    hostLock = await staged('acquire-home-lock', 'HOME_BUSY', true, async () => {
+      const lock = await tryAcquireHostLock(options.home)
+      if (lock === undefined) {
+        throw new Error('another Host already owns this home')
+      }
+      return lock
+    })
     await staged('resolve-runtime', 'RUNTIME_UNAVAILABLE', true, async () => {
       runtimeRoot = await createRuntimeRoot(options.home)
     })

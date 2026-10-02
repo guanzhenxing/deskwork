@@ -8,8 +8,8 @@
 
 | 变量             | 解析规则                                                                                                                                                                                                                                                                                                           |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `<home>`         | `resolveDesktopHome()`（`packages/home-lease`）：`$DESKWORK_HOME` trim 后非空时生效（支持 `~` 展开，相对路径相对进程 cwd），否则为 `~/.deskwork`（Deskwork 自有 home，不指向官方 CLI 的 `~/.dsh`）；解析结果不得为 filesystem root。上游的 `DSH_HOME` **不是输入**——入口解析从不读它，仅由入口把它设置给引擎子进程 |
-| `<isolatedHome>` | `<userData>` 下的专属隔离 home；受支持隔离冒烟入口专用，由 Electron 单实例/测试夹具独占，不是共享 `<home>`，不创建 lease                                                                                                                                                                                           |
+| `<home>`         | `resolveDesktopHome()`（`packages/product-config`）：`$DESKWORK_HOME` trim 后非空时生效（支持 `~` 展开，相对路径相对进程 cwd），否则为 `~/.deskwork`（Deskwork 自有 home，不指向官方应用的 `~/.dsh`）；解析结果不得为 filesystem root。上游的 `DSH_HOME` **不是输入**——入口解析从不读它，仅由入口把它设置给引擎子进程 |
+| `<isolatedHome>` | `<userData>` 下的专属隔离 home；受支持隔离冒烟入口专用，由 Electron 单实例/测试夹具独占，不是共享 `<home>`，不创建 home lock                                                                                                                                                                                           |
 | `<profile>`      | `<home>/profiles/deskwork`（上游把 `desktop` 这个名字保留给官方 Electron 应用，CLI 侧会被拒绝）                                                                                                                                                                                                                    |
 | `<safeProfile>`  | Safe Mode 使用 `<home>/profiles/desktop-safe-mode`（精确三 bundle），同时是未来插件市场的前置能力                                                                                                                                                                                                                  |
 | `<userData>`     | Electron 设置产品身份后返回的 `app.getPath('userData')`；macOS 预期位于 Application Support 下固定的 `Deskwork` 目录（`dataDirectoryName`，不随产品展示名改名迁移）                                                                                                                                                |
@@ -17,7 +17,7 @@
 
 所有可写路径先解析为绝对路径并验证预期父目录。写入逻辑不得跟随用户可植入的目标 symlink 覆盖其他位置。
 
-产品身份（产品名 `Deskwork`、固定的 Electron userData 数据目录名 `Deskwork`、自有 DSH home 默认 `~/.deskwork`、CLI 名 `dsh-native`、设置 namespace `dsh-native-shell`、renderer partition、默认 profile 名）集中维护在 `packages/product-config`，该包不允许依赖 Electron 或任何 `@deepseek-ai/*` 包。
+产品身份（产品名 `Deskwork`、固定的 Electron userData 数据目录名 `Deskwork`、自有 DSH home 默认 `~/.deskwork`、设置 namespace `dsh-native-shell`、renderer partition、默认 profile 名）集中维护在 `packages/product-config`，该包不允许依赖 Electron 或任何 `@deepseek-ai/*` 包。
 
 ## 2. DSH home
 
@@ -31,46 +31,44 @@
 | `<profile>/**`                                                       | `profile-manager` 与用户     | 只修改白名单文件并做修订校验                                                                                                                                                                                                                                                  | 修改前保存存在性、内容和 SHA-256                                                                               |
 | `<safeProfile>/**`                                                   | `profile-manager`            | 只创建 Safe Mode 自身投影，不自动修改正常 profile                                                                                                                                                                                                                             | 可重建；不得包含第三方 bundle 或正常 patch layer                                                               |
 | `<home>/run/compatibility.json`                                      | 受支持写入者                 | 任何受支持入口写入前执行最小链：parse marker → schemaVersion 与 dataEpoch 检查 → 原子预约 marker（fsync temp+rename+目录 fsync）；缺失允许，未知 schema/损坏/不支持 epoch 一律拒绝（exit/恢复页 fail-closed），更早受支持 epoch 报 migration-required，拒绝不触碰任何数据文件 | 预约后启动失败不回滚 epoch；损坏即拒绝不自动重写（[home-compatibility 协议](protocols/home-compatibility.md)） |
-| `<home>/run/host.lock/`（含 `owner.json` 与 `.dsh-writer-sentinel`） | `home-lease`                 | launcher 或 bundled CLI 在整个 Host writer 生命周期持有；哨兵使目录恒非空（布局 v2 单写者载体），原子镜像 generation、supervisor、Host 与 pendingSpawn，供 doctor 兜底判定                                                                                                    | 不是数据备份；只可按 owner 身份受控恢复                                                                        |
-| `<home>/run/profile-transactions/**`                                 | `profile-manager`            | 持有 home lease 时原子写入                                                                                                                                                                                                                                                    | 用于崩溃恢复，终态（committed/rolled-back/retained）最近 20 条保留，conflict 与未终态不自动清理                |
+| `<home>/run/host.lock`                                               | `host-supervisor`            | Host 进程自身持有的内核 `flock`，贯穿其整个生命周期；内核在进程消亡时释放，因此不存在陈旧锁，也无法被 pid 复用欺骗                                                                                            | 不是数据备份；文件本身无内容，语义全在锁上                                                                    |
+| `<home>/run/host-owner.json`                                         | `host-supervisor`            | 记录当前 Host 的 pid 与 Host 入口路径；仅在锁被持有时用于定位并终止孤儿 Host                                                                                                                                    | 陈旧记录（锁空闲）在下次启动时被清除                                                                          |
+| `<home>/run/profile-transactions/**`                                 | `profile-manager`            | 持有 home session 时原子写入                                                                                                                                                                                                                                                    | 用于崩溃恢复，终态（committed/rolled-back/retained）最近 20 条保留，conflict 与未终态不自动清理                |
 | `<home>/profiles/.dsh-desktop-run-*`                                 | `host-supervisor`            | Host 每次启动的中性 launch root（临时 cordis 根 + bundle 投影）；退出时删除                                                                                                                                                                                                   | 不含用户数据；异常残留不阻塞（下次启动新目录）                                                                 |
 | `<home>/run/projection-cache-quarantine.json`                        | `shell-core`                 | cache 隔离 rename 前后的意图 journal（crash 窗口 spanning）；move 落定后自清理                                                                                                                                                                                                | 只写相对路径与字节数；不复制内容                                                                               |
-| `<home>/storages/session_projcache.quarantine-<id>`                  | `shell-core`                 | 超 512 MiB 的可重建 projection cache 在持 lease、无 Host 时同文件系统 rename 隔离                                                                                                                                                                                             | 备份保留不自动删除；rename 前后写意图 journal                                                                  |
+| `<home>/storages/session_projcache.quarantine-<id>`                  | `shell-core`                 | 超 512 MiB 的可重建 projection cache 在持有 home session、无 Host 时同文件系统 rename 隔离                                                                                                                                                                                             | 备份保留不自动删除；rename 前后写意图 journal                                                                  |
 | `<userData>/node-compile-cache/`                                     | desktop launcher             | Host 子进程的 Node 编译缓存（launcher 经受控 `NODE_OPTIONS --require` 预载与 host-entry 兜底开启）；缓存按源码哈希键，不进 `<home>` 不受 admission 检查                                                                                                                       | 纯性能产物，随时可删；删除只影响下一次冷启动速度                                                               |
 
-“Desktop 与 CLI 共享 home”表示它们在不同时间读写同一批数据，不表示两个 Host 可以并发写入。
+同一份 `<home>` 同一时刻只有一个受支持的写入者：桌面应用。
 
-## 3. Home lease
+## 3. Home 所有权
 
-受支持入口在共享 `<home>` 上写入前必须持有 lease（协议细节见 [home-lease 协议](protocols/home-lease.md)）；`<isolatedHome>` 由 Electron 单实例/测试夹具独占，不创建 lease。这不是对共享 home 规则的放宽。
+同一份 `<home>` 同时只有一个受支持的写入者。所有权由两件东西表达：Host 进程持有的内核 `flock`（存活性权威）与 owner 记录（可达性）。`<isolatedHome>` 由 Electron 单实例或测试夹具独占，不参与该机制。
 
 正常启动不接受任意 userData 覆盖。只有 `ui`/`host-crash` smoke 可使用系统临时目录下通过 symlink/实际路径检查的专用目录。profile-manager 的隔离 authority 必须绑定调用方指定 userData 下的专属隔离 home；该 authority 是受信调用方的写入前提，不是对同用户任意代码的安全沙箱。
 
-lease 目录固定为：
+固定布局：
 
 ```text
 <home>/run/
-├── host-lease.guard    # 永久 owner-only advisory lock 文件，原生 helper flock 短临界区
-└── host.lock/
-    ├── owner.json
-    └── .dsh-writer-sentinel
+├── host.lock          # Host 进程持有的内核 flock（文件本身无内容）
+└── host-owner.json    # 当前 Host 的 pid 与入口路径
 ```
 
-`owner.json` 至少记录：
+`host-owner.json` 记录：
 
 - schema version；
-- lease generation；
-- supervisor PID 与 start identity；
-- Host PID 与 start identity；
-- entrypoint、profile、创建时间与应用版本。
+- Host PID；
+- Host 入口路径（用于确认记录仍指向本应用的 Host）；
+- home 路径与记录时间。
 
 owner 文件不包含凭据、authenticated URL、控制通道 capability 或完整命令行。
 
-lease 目录通过原子 `mkdir` 创建。任何清理都必须重新验证 generation、supervisor 和 Host 身份；不能按目录年龄自动解锁。身份不明时由 `dsh-native doctor --unlock` 在确认没有活跃 owner 后显式处理。
+判定规则只有一条：**能取得锁就没有活跃 Host**，此时任何残留记录都是陈旧的，直接清除；取不到锁则按记录终止那个 Host，终止不掉就拒绝启动。不存在按时间或年龄推断的解锁，也不存在 force 绕过。
 
 ## 4. Profile 修改事务
 
-共享 home 的 reconcile 走**逐文件修订事务**：先 `planDesktopReconcile` 计算纯写入计划（只含白名单三文件的相对路径、before 存在性/SHA/字节、候选字节/SHA），再 `applyProfileTransaction` 持久化 journal 并逐文件应用；`commitProfileTransaction` 仅在 Host ready 后写 committed；`rollbackProfileTransaction` 验证所有受影响文件只处于 before/candidate 后幂等恢复，出现第三种内容返回 conflict 并保留；`recoverInterruptedTransactions` 在新 Host boot 前处理中断事务（未达 applied 的幂等恢复，applied 无归因的返回 needs-review，明确不可回滚的以 retained 终态记录失败类别）。隔离 authority 路径保持直接写入，不建 journal。事务目录：
+home 的 reconcile 走**逐文件修订事务**：先 `planDesktopReconcile` 计算纯写入计划（只含白名单三文件的相对路径、before 存在性/SHA/字节、候选字节/SHA），再 `applyProfileTransaction` 持久化 journal 并逐文件应用；`commitProfileTransaction` 仅在 Host ready 后写 committed；`rollbackProfileTransaction` 验证所有受影响文件只处于 before/candidate 后幂等恢复，出现第三种内容返回 conflict 并保留；`recoverInterruptedTransactions` 在新 Host boot 前处理中断事务（未达 applied 的幂等恢复，applied 无归因的返回 needs-review，明确不可回滚的以 retained 终态记录失败类别）。隔离 authority 路径保持直接写入，不建 journal。事务目录：
 
 ```text
 <home>/run/profile-transactions/<transaction-id>/
@@ -83,7 +81,7 @@ lease 目录通过原子 `mkdir` 创建。任何清理都必须重新验证 gene
 
 写入顺序是：
 
-1. 持有 home lease；
+1. 持有 home session；
 2. 验证 profile 路径和 symlink 约束；
 3. 原子写 transaction 意图与 before snapshot；
 4. 原子替换白名单文件；
@@ -130,7 +128,7 @@ DSH credential、settings、sessions 和 storages 不复制到 `<userData>`。
 
 ## 8. 测试数据
 
-所有涉及 profile、lease、恢复或迁移的自动化测试必须使用 `<testHome>`：
+所有涉及 profile、home 所有权、恢复或迁移的自动化测试必须使用 `<testHome>`：
 
 - 测试开始时由 `tests/helpers/isolated-home.mjs` 的 `createIsolatedHomeFixture()` 在系统临时目录下创建；创建时拒绝环境 `DESKWORK_HOME` 已设置、仓库目录、filesystem root 与真实 `~/.dsh`、`~/.deskwork`，清理前复核 realpath 与 dev/ino 身份；
 - fixture 可以从脱敏数据复制，不能链接到真实 home；

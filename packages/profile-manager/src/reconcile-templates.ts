@@ -2,7 +2,6 @@ export const DESKTOP_BUNDLE_PREFIX = [
   '@deepseek-ai/dsh-base',
   '@deepseek-ai/dsh-web-app',
   '@deskwork/desktop-plugin',
-  '@deskwork/workbench',
 ] as const
 
 export const PROFILE_PATCH_TEMPLATE = `# Your patch layer for this dsh profile, applied after every bundle layer:

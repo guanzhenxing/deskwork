@@ -1,4 +1,4 @@
-import { LeaseError, type HomeLease } from '@deskwork/home-lease'
+import type { HomeSession } from '@deskwork/desktop-contracts/home-session'
 import type { HostReady } from '@deskwork/host-supervisor'
 
 import { shouldRollbackProfile, toStartupFailure, type StartupFailure } from './failure-policy.js'
@@ -25,26 +25,19 @@ export interface RecoveryWindowPort {
 
 export type AttemptMode = 'normal' | 'safe'
 
-export type CreateAttempt = (lease: HomeLease, mode: AttemptMode) => HostAttempt
+export type CreateAttempt = (session: HomeSession, mode: AttemptMode) => HostAttempt
 
 /**
- * Home compatibility admission (M4): run after the lease is acquired and
- * before any profile/cache/Host write. The check receives the lease so the
+ * Home compatibility admission: run before any profile/cache/Host write.
+ * The check receives the home session so the
  * writer reservation can bind to it, and refuses with a specific reason when
  * the home's data epoch or persisted formats are not provably compatible.
  * A refusal lands in the local recovery view with retry and Safe Mode
  * withdrawn.
  */
 export type HomeAdmissionCheck = (
-  lease: HomeLease,
-) => Promise<
-  | 'allow'
-  | 'unknown-schema'
-  | 'unsupported-data'
-  | 'unknown-format'
-  | 'unreadable-format'
-  | 'migration-required'
->
+  session: HomeSession,
+) => Promise<'allow' | 'unknown-schema' | 'unsupported-data' | 'migration-required'>
 
 export type ProfilePrepareResult =
   | Readonly<{ kind: 'ready'; transactionId?: string; changed: boolean }>
@@ -58,23 +51,23 @@ export type ProfilePrepareResult =
  * projection cache, and applies the journaled reconcile before any Host boot.
  */
 export interface ProfileRecoveryPort {
-  prepare(lease: HomeLease): Promise<ProfilePrepareResult>
+  prepare(session: HomeSession): Promise<ProfilePrepareResult>
   /** Settle a pending transaction as committed: Host ready, surface mounted. */
-  settleCommitted(transactionId: string, lease: HomeLease): Promise<void>
-  rollback(transactionId: string, lease: HomeLease): Promise<'restored' | 'conflict'>
+  settleCommitted(transactionId: string, session: HomeSession): Promise<void>
+  rollback(transactionId: string, session: HomeSession): Promise<'restored' | 'conflict'>
   retain(
     transactionId: string,
-    lease: HomeLease,
+    session: HomeSession,
     failure: Readonly<{ category: string; code: string }>,
   ): Promise<void>
-  /** Switch the lease owner profile and prepare the desktop-safe-mode profile. */
-  enterSafeMode(lease: HomeLease): Promise<'prepared' | 'conflict'>
-  /** Restore the normal owner profile before a normal retry or release. */
-  exitSafeMode(lease: HomeLease): Promise<void>
+  /** Prepare the desktop-safe-mode profile for this home session. */
+  enterSafeMode(session: HomeSession): Promise<'prepared' | 'conflict'>
+  /** Settle the normal profile before a normal retry. */
+  exitSafeMode(session: HomeSession): Promise<void>
 }
 
 export type RecoverySessionOptions = Readonly<{
-  acquireLease(): Promise<HomeLease>
+  session: HomeSession
   profile: ProfileRecoveryPort
   createAttempt: CreateAttempt
   loadSurface(ready: HostReady): Promise<void>
@@ -83,7 +76,6 @@ export type RecoverySessionOptions = Readonly<{
   onSessionFailure?(failure: StartupFailure): void
   /** Runs once per session that reached healthy, after the state flips. */
   onHealthy?(): Promise<void> | void
-  onLeaseReleaseError?(error: unknown): void
   /**
    * Marker store for the single automatic profile-recovery relaunch. A marker
    * bound to the pending transaction means its budget is already spent, even
@@ -105,7 +97,7 @@ const DEFAULT_RETRY_WINDOW_MS = 60_000
 type SessionState = 'idle' | 'starting' | 'healthy' | 'recovery' | 'stopping' | 'stopped'
 
 /**
- * One desktop session: the outer lease is held once, each (re)try creates a
+ * One desktop session: the home session is created once per run, each (re)try creates a
  * fresh one-shot Host attempt, and the launcher-owned recovery view drives
  * explicit, bounded retries. A failed boot settles its profile transaction
  * first — attributed failures roll the profile back and earn exactly one
@@ -116,7 +108,7 @@ type SessionState = 'idle' | 'starting' | 'healthy' | 'recovery' | 'stopping' | 
 export class RecoverySessionController implements RecoveryController {
   readonly #options: RecoverySessionOptions
   #state: SessionState = 'idle'
-  #lease: HomeLease | undefined
+  #session: HomeSession | undefined
   #attempt: HostAttempt | undefined
   #failure: StartupFailure | undefined
   #retryTimestamps: number[] = []
@@ -130,7 +122,6 @@ export class RecoverySessionController implements RecoveryController {
   #mode: AttemptMode = 'normal'
   #autoRestartUsed = false
   #safeModeBlocked = false
-  #leaseReleased = false
   #inFlightIsStart = false
 
   constructor(options: RecoverySessionOptions) {
@@ -145,21 +136,13 @@ export class RecoverySessionController implements RecoveryController {
     if (this.#failure === undefined) {
       throw new Error('recovery view requested without a failure')
     }
-    // Startup actions exist only while the session still holds the lease:
-    // a lease-less recovery view may offer diagnosis and quit, nothing else.
-    const leaseHeld = this.#lease !== undefined && !this.#leaseReleased
-    // The doctor command applies to a leftover home lock after a full exit —
-    // which never happens while this session holds the lease, so the view
-    // never advertises it (advertising an unlock that doctor must refuse is
-    // worse than silence).
+    // This run owns the home for its whole lifetime, so every startup action
+    // stays available whenever the session sits in the recovery state.
     return Object.freeze({
       failure: this.#failure,
       retryAllowed:
-        leaseHeld &&
-        this.#state === 'recovery' &&
-        this.#failure.retryable &&
-        this.#retryBudgetRemaining() > 0,
-      safeModeAllowed: leaseHeld && this.#state === 'recovery' && !this.#safeModeBlocked,
+        this.#state === 'recovery' && this.#failure.retryable && this.#retryBudgetRemaining() > 0,
+      safeModeAllowed: this.#state === 'recovery' && !this.#safeModeBlocked,
       doctorCommand: null,
     })
   }
@@ -167,8 +150,8 @@ export class RecoverySessionController implements RecoveryController {
   async start(): Promise<void> {
     if (this.#state !== 'idle') throw new Error('session can start only once')
     this.#state = 'starting'
-    // Startup joins the in-flight chain so a quit arriving mid-acquisition
-    // merges with it instead of exiting before the lease exists to release.
+    // Startup joins the in-flight chain so a quit arriving mid-start merges
+    // with it instead of exiting before the session is established.
     const run = this.#startSession()
     this.#inFlight = run
     this.#inFlightIsStart = true
@@ -184,17 +167,10 @@ export class RecoverySessionController implements RecoveryController {
 
   async #startSession(): Promise<void> {
     try {
-      const lease = await this.#options.acquireLease()
-      this.#lease = lease
-      await this.#admitHomeBeforeAnyWrite(lease)
-      await this.#prepareAndRun(lease)
+      this.#session = this.#options.session
+      await this.#admitHomeBeforeAnyWrite(this.#session)
+      await this.#prepareAndRun(this.#session)
     } catch (error) {
-      if (error instanceof LeaseError) {
-        // Lease refusal belongs to the entry lifecycle (launcher dialog or
-        // CLI exit code), not to the in-app recovery window.
-        this.#state = 'recovery'
-        throw error
-      }
       await this.#failAndRecover(error)
       if (!this.#isHealthy()) throw error
     }
@@ -207,15 +183,15 @@ export class RecoverySessionController implements RecoveryController {
   /**
    * Admission refusal is a non-retryable, Safe-Mode-blocked home failure: no
    * supported write path may touch a home it cannot prove compatible. The
-   * lease stays held for the diagnostic view and is released on quit.
+   * home session stays valid for the diagnostic view.
    */
-  async #admitHomeBeforeAnyWrite(lease: HomeLease): Promise<void> {
+  async #admitHomeBeforeAnyWrite(session: HomeSession): Promise<void> {
     const check = this.#options.admitHome
     if (check === undefined) return
     this.#safeModeBlocked = true
     let verdict: Awaited<ReturnType<HomeAdmissionCheck>>
     try {
-      verdict = await check(lease)
+      verdict = await check(session)
     } catch (error) {
       throw new StartupFailureError({
         stage: 'home-admission',
@@ -245,14 +221,6 @@ export class RecoverySessionController implements RecoveryController {
         code: 'HOME_DATA_UNSUPPORTED',
         summary: '这份数据目录由更高数据版本写入，当前版本不支持；请使用写入它的版本打开。',
       },
-      'unknown-format': {
-        code: 'HOME_FORMAT_UNKNOWN',
-        summary: '数据目录中存在当前版本无法识别的数据形态；为避免破坏数据已停止启动。',
-      },
-      'unreadable-format': {
-        code: 'HOME_FORMAT_UNREADABLE',
-        summary: '数据目录中存在当前版本无法读取的格式版本；请使用写入它的版本打开。',
-      },
       'migration-required': {
         code: 'HOME_MIGRATION_REQUIRED',
         summary: '这份数据目录需要本版本不会自动执行的数据迁移；请保留数据并使用兼容版本。',
@@ -268,8 +236,8 @@ export class RecoverySessionController implements RecoveryController {
 
   /**
    * A post-ready Host crash moves the session into recovery without touching
-   * the outer lease: the attempt is already gone, and manual retry may build a
-   * fresh attempt on the same lease. The crashed boot's profile transaction
+   * the outer session: the attempt is already gone, and manual retry may build a
+   * fresh attempt on the same session. The crashed boot's profile transaction
    * was already committed — a post-ready crash never justifies reopening it.
    * The surface-mounted window also counts: a crash between mount and the
    * healthy transition must not leave a dead Host behind a healthy state.
@@ -317,7 +285,7 @@ export class RecoverySessionController implements RecoveryController {
       const wasStart = this.#inFlightIsStart
       await inFlight.catch(() => undefined)
       if (this.#quitRequest && this.#state !== 'stopped') {
-        await this.#stopAndRelease().catch(() => undefined)
+        await this.#stopSession().catch(() => undefined)
         return
       }
       // A click that merged into the settling startup tail now runs as its
@@ -325,7 +293,7 @@ export class RecoverySessionController implements RecoveryController {
       if (!wasStart || action === 'quit') return
     }
     if (this.#quitRequest) {
-      await this.#stopAndRelease()
+      await this.#stopSession()
       return
     }
     if (action === 'retry' && this.#state === 'recovery') {
@@ -336,7 +304,7 @@ export class RecoverySessionController implements RecoveryController {
       const retry = this.#runAct(this.#retry())
       await retry
       if (this.#quitRequest) {
-        await this.#stopAndRelease().catch(() => undefined)
+        await this.#stopSession().catch(() => undefined)
       }
       return
     }
@@ -344,7 +312,7 @@ export class RecoverySessionController implements RecoveryController {
       const enter = this.#runAct(this.#enterSafeMode())
       await enter
       if (this.#quitRequest) {
-        await this.#stopAndRelease().catch(() => undefined)
+        await this.#stopSession().catch(() => undefined)
       }
       return
     }
@@ -359,25 +327,25 @@ export class RecoverySessionController implements RecoveryController {
   }
 
   async #retry(): Promise<void> {
-    if (this.#lease === undefined || this.#quitRequest) return
+    if (this.#session === undefined || this.#quitRequest) return
     this.#recordRetry()
     this.#state = 'starting'
     try {
       if (this.#mode === 'safe') {
-        await this.#options.profile.exitSafeMode(this.#lease)
+        await this.#options.profile.exitSafeMode(this.#session)
         this.#mode = 'normal'
       }
-      await this.#prepareAndRun(this.#lease)
+      await this.#prepareAndRun(this.#session)
     } catch (error) {
       await this.#failAndRecover(error)
     }
   }
 
   async #enterSafeMode(): Promise<void> {
-    if (this.#lease === undefined || this.#quitRequest) return
+    if (this.#session === undefined || this.#quitRequest) return
     let entered: 'prepared' | 'conflict'
     try {
-      entered = await this.#options.profile.enterSafeMode(this.#lease)
+      entered = await this.#options.profile.enterSafeMode(this.#session)
     } catch (error) {
       console.error('safe-mode entry failed:', error instanceof Error ? error.message : error)
       entered = 'conflict'
@@ -392,25 +360,25 @@ export class RecoverySessionController implements RecoveryController {
     this.#mode = 'safe'
     this.#state = 'starting'
     try {
-      await this.#runAttempt(this.#lease, 'safe')
+      await this.#runAttempt(this.#session, 'safe')
     } catch (error) {
       await this.#failAndRecover(error)
     }
   }
 
-  async #prepareAndRun(lease: HomeLease): Promise<void> {
+  async #prepareAndRun(session: HomeSession): Promise<void> {
     if (this.#quitRequest) return
-    const prepared = await this.#options.profile.prepare(lease)
+    const prepared = await this.#options.profile.prepare(session)
     if (this.#quitRequest) return
     if (prepared.kind === 'blocked') throw new StartupFailureError(prepared.failure)
     this.#pendingTransaction = prepared.transactionId
     this.#changed = prepared.changed
-    await this.#runAttempt(lease, 'normal')
+    await this.#runAttempt(session, 'normal')
   }
 
-  async #runAttempt(lease: HomeLease, mode: AttemptMode): Promise<void> {
+  async #runAttempt(session: HomeSession, mode: AttemptMode): Promise<void> {
     if (this.#quitRequest) return
-    const attempt = this.#options.createAttempt(lease, mode)
+    const attempt = this.#options.createAttempt(session, mode)
     this.#attempt = attempt
     this.#state = 'starting'
     this.#surfaceMounted = false
@@ -420,7 +388,7 @@ export class RecoverySessionController implements RecoveryController {
     // `committed` is written only after the Host became ready and the real
     // window mounted the surface — the transaction's evidence of health.
     if (this.#pendingTransaction !== undefined) {
-      await this.#options.profile.settleCommitted(this.#pendingTransaction, lease)
+      await this.#options.profile.settleCommitted(this.#pendingTransaction, session)
       this.#pendingTransaction = undefined
     }
     // A crash handled by hostCrashed() during the commit awaits already moved
@@ -450,21 +418,21 @@ export class RecoverySessionController implements RecoveryController {
       const failure =
         error instanceof StartupFailureError
           ? error.failure
-          : fallbackFailure(error, this.#lease?.home)
+          : fallbackFailure(error, this.#session?.home)
       await this.#stopAttemptSafely()
       this.#surfaceMounted = false
       this.#state = 'recovery'
       this.#failure = failure
       this.#options.onSessionFailure?.(failure)
 
-      if (this.#pendingTransaction !== undefined && this.#lease !== undefined) {
+      if (this.#pendingTransaction !== undefined && this.#session !== undefined) {
         const transactionId = this.#pendingTransaction
         // #surfaceMounted was reset above: a failure past the mount never
         // rolls the transaction back (its health evidence stands).
         if (shouldRollbackProfile({ failure, changed: this.#changed, healthy: false })) {
           let outcome: 'restored' | 'conflict'
           try {
-            outcome = await this.#options.profile.rollback(transactionId, this.#lease)
+            outcome = await this.#options.profile.rollback(transactionId, this.#session)
           } catch (rollbackError) {
             console.error(
               'profile rollback failed:',
@@ -491,7 +459,7 @@ export class RecoverySessionController implements RecoveryController {
               if (markerPersisted) {
                 this.#autoRestartUsed = true
                 try {
-                  await this.#prepareAndRun(this.#lease)
+                  await this.#prepareAndRun(this.#session)
                   return // healthy again: no recovery view needed
                 } catch (restartError) {
                   error = restartError
@@ -507,7 +475,7 @@ export class RecoverySessionController implements RecoveryController {
           break
         }
         await this.#options.profile
-          .retain(transactionId, this.#lease, {
+          .retain(transactionId, this.#session, {
             category: failure.category,
             code: failure.code,
           })
@@ -553,7 +521,7 @@ export class RecoverySessionController implements RecoveryController {
     this.#attempt = undefined
     if (attempt !== undefined) {
       // Track the stop even when nobody awaits this call: a concurrent quit
-      // must wait for it before releasing the home lease.
+      // must wait for it before the quit chain completes.
       this.#attemptStop = attempt
         .stop('quit', this.#options.shutdownDeadlineMs ?? 5_000)
         .catch(() => undefined)
@@ -561,24 +529,16 @@ export class RecoverySessionController implements RecoveryController {
     await this.#attemptStop
   }
 
-  #stopAndRelease(): Promise<void> {
-    this.#stopPromise ??= this.#doStopAndRelease()
+  #stopSession(): Promise<void> {
+    this.#stopPromise ??= this.#doStopSession()
     return this.#stopPromise
   }
 
-  async #doStopAndRelease(): Promise<void> {
+  async #doStopSession(): Promise<void> {
     this.#state = 'stopping'
     try {
       await this.#stopAttemptSafely()
     } finally {
-      if (this.#lease !== undefined) {
-        try {
-          await this.#lease.release()
-          this.#leaseReleased = true
-        } catch (error) {
-          this.#options.onLeaseReleaseError?.(error)
-        }
-      }
       this.#state = 'stopped'
     }
   }

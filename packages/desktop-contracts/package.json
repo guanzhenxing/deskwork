@@ -8,6 +8,10 @@
       "types": "./lib/host-control.d.ts",
       "default": "./lib/host-control.js"
     },
+    "./home-session": {
+      "types": "./lib/home-session.d.ts",
+      "default": "./lib/home-session.js"
+    },
     "./profile-name": {
       "types": "./lib/profile-name.d.ts",
       "default": "./lib/profile-name.js"

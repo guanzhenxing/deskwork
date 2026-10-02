@@ -14,15 +14,10 @@ import {
   Tray,
 } from 'electron'
 
-import {
-  acquireHomeLease,
-  createNativeProcessProbe,
-  LeaseError,
-  resolveDesktopHome,
-  resolveLeaseHelperPath,
-} from '@deskwork/home-lease'
+import { createHomeSession } from '@deskwork/desktop-contracts/home-session'
 import { HostSupervisor, type HostFatalDetail, type HostReady } from '@deskwork/host-supervisor'
-import { PRODUCT } from '@deskwork/product-config'
+import { settleOrphanHost } from '@deskwork/host-supervisor/host-owner'
+import { PRODUCT, resolveDesktopHome } from '@deskwork/product-config'
 import { SAFE_PROFILE_NAME } from '@deskwork/profile-manager'
 import { loadReleaseManifest, runHomeCompatibilityChain } from '@deskwork/release-compatibility'
 
@@ -51,7 +46,7 @@ import {
   externalUrlPolicy,
   type OpenExternalAdapter,
 } from './external-links.js'
-import { describeLeaseBlock, resolveSmokeHome } from './lease-diagnostics.js'
+import { resolveSmokeHome } from './smoke-home.js'
 import { createRecoveryWindow, type RecoveryWindowHandle } from './recovery-window.js'
 import { writeSurfaceUrlFile } from './surface-url-file.js'
 import { resolveSmokeUserData } from './m0-paths.js'
@@ -349,20 +344,6 @@ function smokeReport(payload: Record<string, unknown>): void {
   console.log(`DSH_DESKTOP_SMOKE ${JSON.stringify(payload)}`)
 }
 
-function reportLeaseFailure(error: unknown): void {
-  const view =
-    error instanceof LeaseError
-      ? describeLeaseBlock({ code: error.code, ownerSummary: error.ownerSummary })
-      : describeLeaseBlock({ code: 'LEASE_UNKNOWN' })
-  const detail = error instanceof Error ? error.message : String(error)
-  console.error(`${view.title}: ${detail}`)
-  smokeReport({ kind: 'lease-refused', code: error instanceof LeaseError ? error.code : 'UNKNOWN' })
-  if (smokeMode === undefined) {
-    dialog.showErrorBox(view.title, `${view.body.join('\n')}\n\n${view.doctorCommand}`)
-    app.exit(1)
-  }
-}
-
 async function waitForOfficialUi(window: BrowserWindow): Promise<void> {
   const deadline = Date.now() + 30_000
   let snapshot: unknown
@@ -589,10 +570,6 @@ async function startApplication(): Promise<void> {
     smokeMode !== undefined && userDataOverride !== undefined
       ? resolveSmokeHome({ smokeMode, userData: userDataOverride, osHome: os.homedir() })
       : resolveDesktopHome({ env: process.env, osHome: os.homedir(), cwd: process.cwd() })
-  const probe = createNativeProcessProbe({
-    helperPath: installedRuntime?.leaseHelper ?? resolveLeaseHelperPath(process.env),
-    entryExecutables: [process.execPath],
-  })
   const profileName = PRODUCT.defaultProfileName
   const bootProfileName = smokeProfileOverride ?? profileName
   const marker = createRecoveryMarkerStore(app.getPath('userData'), home)
@@ -742,14 +719,7 @@ async function startApplication(): Promise<void> {
       })
   })
   shell = new RecoverySessionController({
-    acquireLease: () =>
-      acquireHomeLease({
-        home,
-        entrypoint: 'desktop',
-        profile: bootProfileName,
-        appVersion: app.getVersion(),
-        probe,
-      }),
+    session: createHomeSession({ home, profile: bootProfileName }),
     profile: createDesktopProfileRecovery({
       home,
       profileName: bootProfileName,
@@ -760,23 +730,25 @@ async function startApplication(): Promise<void> {
     // flow through this gate). Marker parse → read-only inspection →
     // preflight → write-epoch reservation. A read failure is a fail-closed
     // refusal (thrown → HOME_MARKER_UNREADABLE in the controller).
-    admitHome: (lease) => {
+    admitHome: (session) => {
       const release = loadReleaseManifest({
         ...(installedRuntime !== undefined
           ? { resourcesDir: process.resourcesPath }
           : { repositoryRoot: path.resolve(import.meta.dirname, '..', '..', '..') }),
       })
-      return runHomeCompatibilityChain({ home, lease, release, reserve: true }).then((verdict) => {
-        startupTimeline.mark('home-admitted')
-        return verdict
-      })
+      return runHomeCompatibilityChain({ home, session, release, reserve: true }).then(
+        (verdict) => {
+          startupTimeline.mark('home-admitted')
+          return verdict
+        },
+      )
     },
     readRecoveryMarker: () => marker.read(),
     writeRecoveryMarker: (entry) => marker.write(entry),
     // Dock and tray Quit must complete promptly; the Host is force-terminated
-    // after a short grace period and the lease is released only afterward.
+    // after a short grace period.
     shutdownDeadlineMs: 1_000,
-    createAttempt: (lease, mode) => {
+    createAttempt: (session, mode) => {
       const attemptSupervisor = new HostSupervisor({
         factory: createElectronHostProcessFactory({
           hostEntry: hostEntryPath,
@@ -824,8 +796,8 @@ async function startApplication(): Promise<void> {
               home,
               profileName: mode === 'safe' ? SAFE_PROFILE_NAME : bootProfileName,
               mode,
-              lease,
-              probe,
+              session,
+              argvPin: hostEntryPath,
             })
             readyHost = ready
             startupTimeline.mark('host-ready')
@@ -888,11 +860,20 @@ async function startApplication(): Promise<void> {
         category: failure.category,
       })
     },
-    onLeaseReleaseError: (error) => {
-      smokeReport({ kind: 'lease-release-refused' })
-      console.error('keeping the home lease:', error instanceof Error ? error.message : error)
-    },
   })
+  // A Host left behind by a crashed run must be settled before this run
+  // starts one of its own: two Hosts on one home is the only failure this
+  // check exists to prevent.
+  const orphan = await settleOrphanHost({ home })
+  if (orphan.outcome === 'still-running') {
+    smokeReport({ kind: 'orphan-host', outcome: orphan.outcome, pid: orphan.pid })
+    console.error(
+      `a Host from a previous run (pid ${String(orphan.pid)}) is still running and could not be stopped; refusing to start a second writer`,
+    )
+    app.exit(1)
+  } else if (orphan.outcome !== 'none') {
+    smokeReport({ kind: 'orphan-host', outcome: orphan.outcome, pid: orphan.pid })
+  }
   await shell.start()
 
   if (smokeMode !== undefined && smokeMode !== 'recovery') {
@@ -1011,12 +992,11 @@ else {
       return startApplication()
     })
     .catch((error: unknown) => {
-      if (error instanceof LeaseError) reportLeaseFailure(error)
-      else {
+      {
         console.error('startup failed:', error instanceof Error ? error.message : error)
         // A normal launch that dies before any window exists would otherwise
         // sit invisible with no window-all-closed to end it; surface the
-        // failure and exit like the lease refusal does.
+        // failure instead of exiting silently.
         if (smokeMode === undefined) {
           dialog.showErrorBox(
             'Deskwork 启动失败',

@@ -4,7 +4,7 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import type { HomeLease } from '@deskwork/home-lease'
+import type { HomeSession } from '@deskwork/desktop-contracts/home-session'
 
 import { HomeAdmissionError, markerPath } from '../src/home-admission.js'
 import { runHomeCompatibilityChain } from '../src/home-marker.js'
@@ -24,8 +24,8 @@ async function tempHome(): Promise<string> {
   return home
 }
 
-function stubLease(home: string): HomeLease {
-  return { home, assertHeld: async () => undefined } as unknown as HomeLease
+function stubLease(home: string): HomeSession {
+  return { home, assertHeld: async () => undefined } as unknown as HomeSession
 }
 
 function release(
@@ -41,16 +41,16 @@ function release(
 describe('runHomeCompatibilityChain (minimal marker-only admission)', () => {
   it('admits a fresh home twice in a row and reserves an empty-formats marker', async () => {
     const home = await tempHome()
-    const lease = stubLease(home)
+    const session = stubLease(home)
     await expect(
-      runHomeCompatibilityChain({ home, release: release(), lease, reserve: true }),
+      runHomeCompatibilityChain({ home, release: release(), session, reserve: true }),
     ).resolves.toBe('allow')
     const marker = JSON.parse(await readFile(markerPath(home), 'utf8'))
     expect(marker).toMatchObject({ schemaVersion: 1, dataEpoch: 1, formats: {} })
     // The second boot reads back the marker the first boot reserved: the home
     // this release wrote must admit this release, with no format evidence.
     await expect(
-      runHomeCompatibilityChain({ home, release: release(), lease, reserve: true }),
+      runHomeCompatibilityChain({ home, release: release(), session, reserve: true }),
     ).resolves.toBe('allow')
   })
 
@@ -116,7 +116,7 @@ describe('runHomeCompatibilityChain (minimal marker-only admission)', () => {
     ).resolves.toBe('migration-required')
   })
 
-  it('refuses to reserve without holding the home lease', async () => {
+  it('refuses to reserve without holding the home session', async () => {
     const home = await tempHome()
     await expect(
       runHomeCompatibilityChain({ home, release: release(), reserve: true }),

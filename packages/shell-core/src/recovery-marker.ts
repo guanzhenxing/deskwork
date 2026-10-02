@@ -1,6 +1,7 @@
-import { createHash, randomUUID } from 'node:crypto'
-import { mkdir, open, readFile, rename, rm } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { mkdir, readFile, rm } from 'node:fs/promises'
 import path from 'node:path'
+import { syncDirectory, writeAtomicDurable } from '@deskwork/durable-fs'
 
 export type RecoveryMarker = Readonly<{ transactionId: string; attempt: number }>
 
@@ -20,15 +21,6 @@ export function createRecoveryMarkerStore(userData: string, home: string) {
   const digest = createHash('sha256').update(home).digest('hex').slice(0, 16)
   const directory = path.join(userData, 'recovery')
   const file = path.join(directory, `${digest}.json`)
-
-  const syncDirectory = async (dirname: string): Promise<void> => {
-    const handle = await open(dirname, 'r')
-    try {
-      await handle.sync()
-    } finally {
-      await handle.close()
-    }
-  }
 
   /** `absent`, or the parsed value plus whether this build owns the format. */
   const readRaw = async (): Promise<
@@ -79,19 +71,13 @@ export function createRecoveryMarkerStore(userData: string, home: string) {
       const existing = await readRaw()
       if (existing.state === 'foreign') return
       await mkdir(directory, { recursive: true, mode: 0o700 })
-      const temporary = `${file}.${randomUUID()}.tmp`
-      const handle = await open(temporary, 'wx', 0o600)
-      try {
-        await handle.writeFile(
+      await writeAtomicDurable(
+        file,
+        Buffer.from(
           `${JSON.stringify({ schemaVersion: 1, ...marker } satisfies StoredMarker, null, 2)}\n`,
           'utf8',
-        )
-        await handle.sync()
-      } finally {
-        await handle.close()
-      }
-      await rename(temporary, file)
-      await syncDirectory(directory)
+        ),
+      )
     },
     async clear(): Promise<void> {
       // Only this build's own format is ever removed; anything else on disk

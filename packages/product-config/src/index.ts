@@ -1,9 +1,10 @@
 /**
  * Read-only product identity shared by every desktop entrypoint. This package
  * intentionally has no dependencies: it must stay importable from Electron
- * Main, the bundled CLI, and tests without dragging in Electron or any DSH
- * runtime.
+ * Main and tests without dragging in Electron or any DSH runtime.
  */
+export * from './home-paths.js'
+
 export const PRODUCT = Object.freeze({
   // The .app bundle filename, the executable, the helpers and every
   // system-facing name. The Dock hover of a running app shows the bundle
@@ -19,7 +20,6 @@ export const PRODUCT = Object.freeze({
   displayName: 'Deskwork',
   appId: 'local.deskwork.app',
   binName: 'dsh-desktop',
-  cliName: 'dsh-native',
   defaultProfileName: 'deskwork',
   settingsNamespace: 'dsh-native-shell',
   defaultPort: 0,

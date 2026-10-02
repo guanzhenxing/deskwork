@@ -32,7 +32,7 @@ export type DesktopRecoveryOptions = Readonly<{
  * The production profile-recovery port: settle interrupted journals from
  * previous runs, quarantine an oversized rebuildable cache, apply the
  * journaled reconcile, and settle the transaction on the session's verdict.
- * Every recovery write requires the live whole-home lease.
+ * Every recovery write requires this run's home session.
  */
 export function createDesktopProfileRecovery(options: DesktopRecoveryOptions): ProfileRecoveryPort {
   const home = options.home
@@ -42,10 +42,10 @@ export function createDesktopProfileRecovery(options: DesktopRecoveryOptions): P
   const safeRef = createProfileRef(home, SAFE_PROFILE_NAME)
   const thresholdBytes = options.cacheThresholdBytes ?? 512 * 1024 * 1024
   return {
-    async prepare(lease) {
+    async prepare(session) {
       let recovery: Awaited<ReturnType<typeof recoverInterruptedTransactions>>
       try {
-        recovery = await recoverInterruptedTransactions(normalRef, lease)
+        recovery = await recoverInterruptedTransactions(normalRef, session)
       } catch (error) {
         throw new StartupFailureError(
           toStartupFailure({
@@ -72,7 +72,7 @@ export function createDesktopProfileRecovery(options: DesktopRecoveryOptions): P
       }
       let cache: Awaited<ReturnType<typeof quarantineProjectionCache>>
       try {
-        cache = await quarantineProjectionCache({ home, lease, thresholdBytes })
+        cache = await quarantineProjectionCache({ home, session, thresholdBytes })
       } catch (error) {
         throw new StartupFailureError(
           toStartupFailure({
@@ -140,7 +140,7 @@ export function createDesktopProfileRecovery(options: DesktopRecoveryOptions): P
         // The desired profile must still equal the adopted candidate: a
         // change would stack a second open journal. Detect it at PLAN time,
         // before any file is touched.
-        const pending = await planDesktopReconcile(normalRef, lease).catch(() => undefined)
+        const pending = await planDesktopReconcile(normalRef, session).catch(() => undefined)
         if (pending === undefined || pending.writes.length > 0) {
           return needsReviewBlock(
             'the desired profile changed since an interrupted startup left one mid-transaction; the profile was left untouched — inspect run/profile-transactions in the DSH home (the journal records the divergence)',
@@ -150,7 +150,7 @@ export function createDesktopProfileRecovery(options: DesktopRecoveryOptions): P
       let result: Awaited<ReturnType<typeof reconcileDesktopProfile>> | undefined
       if (profileName === ownedProfileName) {
         try {
-          result = await reconcileDesktopProfile(normalRef, lease)
+          result = await reconcileDesktopProfile(normalRef, session)
         } catch (error) {
           const phase = error instanceof ProfileReconcileError ? error.phase : 'apply'
           throw new StartupFailureError(
@@ -171,7 +171,7 @@ export function createDesktopProfileRecovery(options: DesktopRecoveryOptions): P
       if (result !== undefined && adopted !== undefined && result.transactionId !== undefined) {
         // Lost a race with an edit between the plan check and the apply:
         // restore the fresh transaction's files, then block for review.
-        await rollbackProfileTransaction(result.transactionId, lease).catch(() => undefined)
+        await rollbackProfileTransaction(result.transactionId, session).catch(() => undefined)
         return needsReviewBlock(
           'the desired profile changed since an interrupted startup left one mid-transaction; the profile was left untouched — inspect run/profile-transactions in the DSH home (the journal records the divergence)',
         )
@@ -184,25 +184,24 @@ export function createDesktopProfileRecovery(options: DesktopRecoveryOptions): P
       }
       return ready
     },
-    async settleCommitted(transactionId, lease) {
-      await commitProfileTransaction(transactionId, lease)
+    async settleCommitted(transactionId, session) {
+      await commitProfileTransaction(transactionId, session)
     },
-    async rollback(transactionId, lease) {
-      return rollbackProfileTransaction(transactionId, lease)
+    async rollback(transactionId, session) {
+      return rollbackProfileTransaction(transactionId, session)
     },
-    async retain(transactionId, lease, failure) {
-      await retainProfileTransaction(transactionId, lease, failure)
+    async retain(transactionId, session, failure) {
+      await retainProfileTransaction(transactionId, session, failure)
     },
-    async enterSafeMode(lease) {
-      // Prepare first: a conflicting safe profile must leave the lease (and
-      // the normal profile) exactly as it was.
-      const prepared = await prepareSafeProfile(safeRef, lease)
+    async enterSafeMode(session) {
+      // Prepare first: a conflicting safe profile must leave the normal
+      // profile exactly as it was.
+      const prepared = await prepareSafeProfile(safeRef, session)
       if (prepared === 'conflict') return 'conflict'
-      await lease.switchProfile(SAFE_PROFILE_NAME)
       return 'prepared'
     },
-    async exitSafeMode(lease) {
-      await lease.switchProfile(profileName)
+    async exitSafeMode() {
+      // Nothing to restore: the home session is not bound to a profile name.
     },
   }
 }

@@ -17,34 +17,19 @@ const hostRoot = path.join(installRoot, 'runtime-host')
 const shellCore = await import(
   path.join(hostRoot, 'node_modules', '@deskwork', 'shell-core', 'lib', 'index.js')
 )
-const homeLease = await import(
-  path.join(hostRoot, 'node_modules', '@deskwork', 'home-lease', 'lib', 'index.js')
-)
 const releaseCompatibility = await import(
   path.join(hostRoot, 'node_modules', '@deskwork', 'release-compatibility', 'lib', 'index.js')
 )
 
+const contracts = await import(
+  path.join(hostRoot, 'node_modules', '@deskwork', 'desktop-contracts', 'lib', 'home-session.js')
+)
 const { RecoverySessionController, StartupFailureError, createDesktopProfileRecovery } = shellCore
-const { acquireHomeLease, createInProcessGuardLock } = homeLease
+const { createHomeSession } = contracts
 
 function report(payload) {
   console.log(`PKG-CTRL ${JSON.stringify(payload)}`)
 }
-
-const sameProbe = () => ({
-  async current() {
-    return { pid: process.pid, startIdentity: 'pkg-driver' }
-  },
-  async identify(pid) {
-    return { pid, startIdentity: 'pkg-driver' }
-  },
-  async inspect() {
-    return 'same'
-  },
-  async scanSupported() {
-    return 'none'
-  },
-})
 
 const attributedFailure = new StartupFailureError({
   stage: 'resolve-profile',
@@ -54,21 +39,14 @@ const attributedFailure = new StartupFailureError({
   retryable: false,
 })
 
-async function leasedSession(homeDir, options) {
-  const lease = await acquireHomeLease({
-    home: homeDir,
-    entrypoint: 'desktop',
-    profile: 'deskwork',
-    appVersion: '0.0.0',
-    probe: sameProbe(),
-    guard: createInProcessGuardLock(),
-  })
+async function sessionFixture(homeDir, options) {
+  const homeSession = await createHomeSession({ home: homeDir, profile: 'deskwork' })
   const session = { attempts: [], views: [] }
   session.controller = new RecoverySessionController({
-    acquireLease: async () => lease,
+    session: homeSession,
     profile: createDesktopProfileRecovery({ home: homeDir, profileName: 'deskwork' }),
     admitHome: () => releaseCompatibility.admitHome({ home: homeDir }),
-    createAttempt: (_lease, mode) => {
+    createAttempt: (_session, mode) => {
       session.attempts.push(mode)
       return {
         start: () => options.boot(session.attempts.length, mode),
@@ -83,7 +61,7 @@ async function leasedSession(homeDir, options) {
       destroySurface: () => undefined,
     },
   })
-  session.lease = lease
+  session.session = session
   return session
 }
 
@@ -109,7 +87,7 @@ async function assertSentinels(homeDir) {
 async function recoveryChainScenario() {
   await mkdir(path.join(home, 'profiles', 'deskwork'), { recursive: true, mode: 0o700 })
   await seedSentinels(home)
-  const session = await leasedSession(home, {
+  const session = await sessionFixture(home, {
     boot: () => Promise.reject(attributedFailure),
   })
   await session.controller.start().catch(() => undefined)
@@ -146,7 +124,7 @@ async function admissionScenario() {
     })}\n`,
   )
   await seedSentinels(home)
-  const session = await leasedSession(home, {
+  const session = await sessionFixture(home, {
     boot: () => {
       throw new Error('no Host attempt may be created when admission refuses')
     },
@@ -190,7 +168,7 @@ async function safeModeScenario() {
       2,
     )}\n`,
   )
-  const session = await leasedSession(home, {
+  const session = await sessionFixture(home, {
     boot: (index, mode) => {
       if (mode === 'safe') {
         return Promise.resolve({

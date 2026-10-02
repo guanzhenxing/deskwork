@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto'
-import { lstat, open, readFile, rename, rm, stat } from 'node:fs/promises'
+import { lstat, mkdir, readFile, rename, rm, stat } from 'node:fs/promises'
 import path from 'node:path'
 
-import type { HomeLease } from '@deskwork/home-lease'
+import { syncDirectory, writeAtomicDurable } from '@deskwork/durable-fs'
+import type { HomeSession } from '@deskwork/desktop-contracts/home-session'
 
 export type CacheQuarantineResult =
   | Readonly<{ kind: 'unchanged' }>
@@ -25,27 +26,12 @@ type QuarantineJournal = Readonly<{
   phase: 'intent' | 'renamed' | 'done'
 }>
 
-async function syncDirectory(dirname: string): Promise<void> {
-  const handle = await open(dirname, 'r')
-  try {
-    await handle.sync()
-  } finally {
-    await handle.close()
-  }
-}
-
 async function writeJournalDurable(home: string, journal: QuarantineJournal): Promise<void> {
   const file = path.join(home, JOURNAL_RELATIVE)
-  const temporary = `${file}.${randomUUID()}.tmp`
-  const handle = await open(temporary, 'wx', 0o600)
-  try {
-    await handle.writeFile(`${JSON.stringify(journal, null, 2)}\n`, 'utf8')
-    await handle.sync()
-  } finally {
-    await handle.close()
-  }
-  await rename(temporary, file)
-  await syncDirectory(path.dirname(file))
+  // The quarantine runs before anything else may have created run/, so it
+  // creates the directory itself rather than depending on a sibling.
+  await mkdir(path.dirname(file), { recursive: true, mode: 0o700 })
+  await writeAtomicDurable(file, Buffer.from(`${JSON.stringify(journal, null, 2)}\n`, 'utf8'))
 }
 
 type JournalRead =
@@ -130,7 +116,7 @@ async function directorySize(root: string): Promise<number | undefined> {
 
 /**
  * Quarantine an oversized, rebuildable projection cache while holding the
- * home lease and with no running Host. Only the fixed baseline layout is
+ * home session and with no running Host. Only the fixed baseline layout is
  * ever moved; anything unexpected reports unknown-layout without touching
  * disk. The move is a same-filesystem rename with an intent journal so a
  * crash at either boundary is recognizable, and the backup is kept.
@@ -138,14 +124,13 @@ async function directorySize(root: string): Promise<number | undefined> {
 export async function quarantineProjectionCache(
   input: Readonly<{
     home: string
-    lease: HomeLease
+    session: HomeSession
     thresholdBytes: number
   }>,
 ): Promise<CacheQuarantineResult> {
-  if (input.lease.home !== input.home) {
-    throw new Error('projection-cache quarantine requires a lease bound to this home')
+  if (input.session.home !== input.home) {
+    throw new Error('projection-cache quarantine requires a session bound to this home')
   }
-  await input.lease.assertHeld()
 
   // Resolve the previous run's journal first: a crash after rename but before
   // the done marker must never move the backup a second time. A journal this
@@ -235,10 +220,6 @@ export async function quarantineProjectionCache(
   }
 
   const id = randomUUID()
-  // The size scan above can run long; the lease observed live at entry may
-  // have been released and re-acquired by another entrypoint since. Prove it
-  // is still ours immediately before any durable move happens.
-  await input.lease.assertHeld()
   const backupRelativePath = path.join(input.home, 'storages', `${QUARANTINE_PREFIX}${id}`)
   const backupRelativeForJournal = `storages/${QUARANTINE_PREFIX}${id}`
 

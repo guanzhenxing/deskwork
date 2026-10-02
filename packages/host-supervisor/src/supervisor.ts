@@ -1,6 +1,8 @@
 import { createHash, randomBytes } from 'node:crypto'
 
-import type { HomeLease, ProcessProbe } from '@deskwork/home-lease'
+import type { HomeSession } from '@deskwork/desktop-contracts/home-session'
+
+import { clearHostOwner, recordHostOwner } from './host-owner.js'
 
 import {
   HostControlError,
@@ -27,11 +29,11 @@ export type HostBootstrap = Readonly<{
 /**
  * A Host child created without boot credentials. The supervisor persists the
  * pending spawn, registers the child's operating-system identity on the home
- * lease, and only then delivers the bootstrap message.
+ * owner record, and only then delivers the bootstrap message.
  */
 export interface ManagedHostProcess {
   readonly pid: number
-  /** Private channel-handshake nonce; distinct from the OS lease identity. */
+  /** Private channel-handshake nonce; distinct from the recorded process identity. */
   readonly startIdentity: string
   deliverBootstrap(bootstrap: HostBootstrap): void
   postMessage(message: unknown): void
@@ -89,8 +91,9 @@ export type HostStartRequest = Readonly<{
   home: string
   profileName: string
   mode: 'normal' | 'safe'
-  lease: HomeLease
-  probe: ProcessProbe
+  session: HomeSession
+  /** The Host entry path recorded so a later run can recognise this Host. */
+  argvPin: string
 }>
 
 export type HostSupervisorOptions = Readonly<{
@@ -98,15 +101,6 @@ export type HostSupervisorOptions = Readonly<{
   stabilityMs?: number
   startupTimeoutMs?: number
   terminateGraceMs?: number
-  /**
-   * How often the supervisor re-asserts the home lease while the Host runs.
-   * The lease gates ADMISSION, not the Host's own writes: without a watchdog,
-   * a lock removed underneath a running Host (e.g. a frozen older artifact's
-   * doctor misreading the new identity format) would leave the Host writing
-   * while a new entrant acquires a fresh lock — a real double-writer window.
-   * The watchdog bounds that window to one interval.
-   */
-  watchdogIntervalMs?: number
   onEvent?: (event: HostSupervisorEvent) => void
 }>
 
@@ -141,12 +135,9 @@ export class HostSupervisor {
   #stabilityTimer: ReturnType<typeof setTimeout> | undefined
   #terminateTimer: ReturnType<typeof setTimeout> | undefined
   #killTimer: ReturnType<typeof setTimeout> | undefined
-  #watchdogTimer: ReturnType<typeof setInterval> | undefined
-  #watchdogBusy = false
-  #watchdogFailures = 0
   #spawnPromise: Promise<void> | undefined
   #request: HostStartRequest | undefined
-  #leaseTouched = false
+  #ownerRecorded = false
   #started = false
   #healthy = false
   #exited = false
@@ -157,11 +148,10 @@ export class HostSupervisor {
       // The stability window holds Host readiness after the ready message to
       // attribute an immediately-crashing Host to boot failure. 100ms is the
       // value every packaged smoke has exercised (including host-crash); the
-      // watchdog and the M2 crash-recovery chain own later failures.
+      // the crash-recovery chain owns later failures.
       stabilityMs: options.stabilityMs ?? 100,
       startupTimeoutMs: options.startupTimeoutMs ?? 30_000,
       terminateGraceMs: options.terminateGraceMs ?? 2_000,
-      watchdogIntervalMs: options.watchdogIntervalMs ?? 2_000,
       ...options,
     }
   }
@@ -189,7 +179,7 @@ export class HostSupervisor {
       }
       if (this.#process === undefined || this.#exited) {
         this.state = 'stopped'
-        await this.#confirmLeaseExit()
+        await this.#clearOwnerRecord()
         this.#stop?.resolve()
         this.#emit({ kind: 'stopped' })
         return
@@ -213,46 +203,43 @@ export class HostSupervisor {
 
   async #spawn(request: HostStartRequest): Promise<void> {
     try {
-      // The lease authorizes writes to ITS home; a mismatched request.home
+      // The session authorizes writes to ITS home; a mismatched request.home
       // would hand the Host write authorization for a different home —
       // refuse before anything is registered or spawned. The message carries
       // short digests, not the paths themselves: local paths never belong in
       // errors that reach logs or smoke reports.
-      if (request.home !== request.lease.home) {
+      if (request.home !== request.session.home) {
         throw new HostControlError(
           'BOOT_FAILED',
-          `lease covers home ${homeDigest(request.lease.home)}, not ${homeDigest(request.home)}`,
+          `session covers home ${homeDigest(request.session.home)}, not ${homeDigest(request.home)}`,
         )
       }
-      await request.lease.beforeSpawn(request.profileName)
-      this.#leaseTouched = true
       const process = await this.#options.factory.spawnWaiting()
       this.#process = process
       try {
-        const osIdentity = await request.probe.identify(process.pid)
-        await request.lease.attachHost(osIdentity)
+        await recordHostOwner({
+          home: request.home,
+          identity: { pid: process.pid, startIdentity: process.startIdentity },
+          argvPin: request.argvPin,
+        })
+        this.#ownerRecorded = true
         const bootstrap: HostBootstrap = Object.freeze({
           home: request.home,
           profileName: request.profileName,
           mode: request.mode,
           capability: this.#capability,
-          leaseGeneration: request.lease.generation,
+          leaseGeneration: request.session.generation,
         })
         process.deliverBootstrap(bootstrap)
-        // From the moment the Host holds boot authorization, its writes are
-        // no longer gated by lease checks — the watchdog is what keeps the
-        // single-writer guarantee true if the lock disappears underneath it.
-        this.#startWatchdog()
       } catch (error) {
         // The child never received boot credentials; reap it and, only when
-        // its death is provable, clear the pending spawn registration. An
-        // unreapable child keeps the lease flagged so release stays refused.
+        // its death is provable, clear the owner record.
         await this.#reapUnauthorizedChild(process)
         throw error
       }
       this.#protocol = new LauncherProtocolSession({
         capability: this.#capability,
-        leaseGeneration: request.lease.generation,
+        leaseGeneration: request.session.generation,
         expectedHost: { pid: process.pid, startIdentity: process.startIdentity },
         profileName: request.profileName,
         mode: request.mode,
@@ -304,16 +291,16 @@ export class HostSupervisor {
       await Promise.race([exitedPromise, new Promise<void>((r) => setTimeout(r, 500))])
     }
     if (!exited) {
-      // Leave pendingSpawn set: the lease release will refuse and the
-      // launcher reports the kept lease instead of clearing it blindly.
+      // Leave the owner record in place: the next startup check will find the
+      // pid still alive and settle it before starting a new Host.
       return
     }
-    await this.#request?.lease.confirmHostExited().catch(() => undefined)
+    await this.#clearOwnerRecord()
   }
 
-  async #confirmLeaseExit(): Promise<void> {
-    if (this.#request === undefined || !this.#leaseTouched) return
-    await this.#request.lease.confirmHostExited().catch(() => undefined)
+  async #clearOwnerRecord(): Promise<void> {
+    if (this.#request === undefined || !this.#ownerRecorded) return
+    await clearHostOwner(this.#request.home)
   }
 
   #onMessage(input: unknown): void {
@@ -391,7 +378,7 @@ export class HostSupervisor {
     this.#exited = true
     this.#clearTimers()
     if (this.#stop !== undefined) {
-      void this.#confirmLeaseExit().then(() => {
+      void this.#clearOwnerRecord().then(() => {
         this.state = 'stopped'
         if (!this.#healthy) {
           // A stop that raced the spawn still has to settle the start
@@ -406,16 +393,16 @@ export class HostSupervisor {
       return
     }
     if (this.state === 'failed') {
-      void this.#confirmLeaseExit()
+      void this.#clearOwnerRecord()
       return
     }
     if (!this.#healthy) {
-      void this.#confirmLeaseExit().then(() => {
+      void this.#clearOwnerRecord().then(() => {
         this.#failStart(new HostControlError('BOOT_FAILED', 'Host exited before becoming ready'))
       })
       return
     }
-    void this.#confirmLeaseExit().then(() => {
+    void this.#clearOwnerRecord().then(() => {
       const error = new HostControlError('HOST_CRASHED', 'Host exited after becoming ready')
       this.state = 'failed'
       this.#emit({ kind: 'crashed', error })
@@ -471,71 +458,11 @@ export class HostSupervisor {
     }
   }
 
-  #startWatchdog(): void {
-    if (this.#watchdogTimer !== undefined) return
-    this.#watchdogTimer = setInterval(() => {
-      void this.#watchdogTick()
-    }, this.#options.watchdogIntervalMs)
-    this.#watchdogTimer.unref?.()
-  }
-
-  #stopWatchdog(): void {
-    if (this.#watchdogTimer === undefined) return
-    clearInterval(this.#watchdogTimer)
-    this.#watchdogTimer = undefined
-  }
-
-  async #watchdogTick(): Promise<void> {
-    if (
-      this.#watchdogBusy ||
-      this.#exited ||
-      this.#stop !== undefined ||
-      this.#request === undefined
-    ) {
-      return
-    }
-    this.#watchdogBusy = true
-    try {
-      await this.#request.lease.assertHeld()
-      this.#watchdogFailures = 0
-    } catch (error) {
-      const code = (error as { code?: string }).code ?? 'unknown error'
-      if (code === 'GUARD_BUSY' || code === 'HOME_BUSY') {
-        // Guard contention means another lease critical section is in flight
-        // (a concurrent doctor or acquirer) — assertHeld propagates
-        // GUARD_BUSY for that and it is never evidence of lease loss.
-        return
-      }
-      this.#watchdogFailures += 1
-      if (this.#watchdogFailures < 2) return
-      // A stop that began while this tick was awaiting assertHeld owns the
-      // shutdown now (its release may even be what made assertHeld fail) —
-      // reporting a crash into a running quit chain would race the recoverer.
-      if (this.#stop !== undefined) return
-      this.#stopWatchdog()
-      // The watchdog runs from bootstrap delivery, BEFORE the Host reports
-      // ready: losing the lease during startup must abort the start
-      // (failStart), not fall through a healthy-only handler and leave the
-      // Host running unwatched.
-      const fatal = new HostControlError(
-        'LEASE_MISMATCH',
-        `home lease lost while the Host was ${this.#healthy ? 'running' : 'starting'} (${code}): ${String(
-          (error as Error).message,
-        )} — terminating the Host to preserve the single-writer guarantee`,
-      )
-      if (this.#healthy) this.#failHealthy(fatal)
-      else this.#failStart(fatal)
-    } finally {
-      this.#watchdogBusy = false
-    }
-  }
-
   #clearTimers(): void {
     clearTimeout(this.#startupTimer)
     clearTimeout(this.#stabilityTimer)
     clearTimeout(this.#terminateTimer)
     clearTimeout(this.#killTimer)
-    this.#stopWatchdog()
   }
 
   #emit(event: HostSupervisorEvent): void {

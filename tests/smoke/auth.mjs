@@ -3,7 +3,7 @@
 // authenticated handoff establishes a usable cookie, and after a full Desktop
 // restart the fresh Host authentication no longer honors the old credentials.
 import { createDesktopSmokeRoot } from '../helpers/desktop-smoke-root.mjs'
-import { ensureLauncherBuilt, withDesktop } from '../helpers/shared-home-driver.mjs'
+import { ensureLauncherBuilt, withDesktop } from '../helpers/desktop-driver.mjs'
 
 await ensureLauncherBuilt()
 const root = await createDesktopSmokeRoot()

@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs'
-import { lstat, mkdir, open, rename, unlink } from 'node:fs/promises'
-import { randomUUID } from 'node:crypto'
+import { lstat, mkdir } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import type { HomeLease } from '@deskwork/home-lease'
+import { writeAtomicDurable } from '@deskwork/durable-fs'
+import type { HomeSession } from '@deskwork/desktop-contracts/home-session'
 
 import {
   HomeAdmissionError,
@@ -17,65 +17,18 @@ import { parseReleaseManifest, type ReleaseManifest } from './manifest.js'
 
 /** The unified verdict every supported entrypoint acts on. */
 export type HomePreflightVerdict =
-  | 'allow'
-  | 'unknown-schema'
-  | 'unsupported-data'
-  | 'unknown-format'
-  | 'unreadable-format'
-  | 'migration-required'
+  'allow' | 'unknown-schema' | 'unsupported-data' | 'migration-required'
 
 /**
  * The allow decision the chain hands to the marker reservation. Since
  * cross-product format admission was dropped, the formats map is always
- * empty: the marker records only the epoch facts. `unknown-format` and
- * `unreadable-format` stay in the verdict union for the launcher's failure
- * classification, but the minimal chain never produces them.
+ * empty: the marker records only the epoch facts.
  */
 export type HomeAdmissionAllowance = Readonly<{
   kind: 'allow'
   dataEpoch: number
   formats: Readonly<Record<string, string>>
 }>
-
-async function syncDirectory(dirname: string): Promise<void> {
-  const handle = await open(dirname, 'r')
-  try {
-    await handle.sync()
-  } finally {
-    await handle.close()
-  }
-}
-
-/**
- * fsync'd temp file + atomic rename, mirroring the shell-core/profile-manager
- * durable-write discipline (this package cannot depend on shell-core — the
- * dependency edge points the other way — so the pattern is repeated here on
- * purpose).
- */
-async function writeAtomicDurable(filename: string, bytes: Uint8Array): Promise<void> {
-  const temporary = `${filename}.${randomUUID()}.tmp`
-  const handle = await open(temporary, 'wx', 0o600)
-  try {
-    await handle.writeFile(bytes)
-    await handle.sync()
-  } finally {
-    await handle.close()
-  }
-  try {
-    await rename(temporary, filename)
-  } catch (error) {
-    // Never leak the temp file when the atomic swap itself fails.
-    await unlink(temporary).catch(() => undefined)
-    throw error
-  }
-  const written = await open(filename, 'r')
-  try {
-    await written.sync()
-  } finally {
-    await written.close()
-  }
-  await syncDirectory(path.dirname(filename))
-}
 
 /**
  * Reserve the release's write epoch on the home BEFORE any new-format write:
@@ -84,26 +37,22 @@ async function writeAtomicDurable(filename: string, bytes: Uint8Array): Promise<
  * a crash mid-write must make later releases suspect partial new-format data,
  * not silently treat the home as old.
  *
- * The lease must be the one held for this home's session; reserving without
- * holding the home lease is refused. A symlinked run/ directory or an
- * existing marker that is not a regular file refuses (fail closed).
+ * The session must belong to this home; reserving for a home this run does
+ * not own is refused. A symlinked run/ directory or an existing marker that
+ * is not a regular file refuses (fail closed).
  */
 export async function reserveHomeWrite(input: {
   home: string
-  lease: HomeLease
+  session: HomeSession
   release: ReleaseManifest
   decision: HomeAdmissionAllowance
 }): Promise<void> {
-  if (input.lease.home !== input.home) {
+  if (input.session.home !== input.home) {
     throw new HomeAdmissionError(
       'MARKER_UNREADABLE',
-      'write reservation requires the lease of the same home',
+      'write reservation requires the session of the same home',
     )
   }
-  // A matching home path alone must not authorize the reservation: the lease
-  // must still be held by this session (a released handle predates the
-  // current owner and must not write).
-  await input.lease.assertHeld()
   const run = path.join(input.home, 'run')
   const runIdentity = await lstat(run).catch((error: NodeJS.ErrnoException) => {
     if (error.code === 'ENOENT') return undefined
@@ -130,22 +79,21 @@ export async function reserveHomeWrite(input: {
  * check its schema version and data epoch, then reserve the write epoch.
  * Since cross-product format admission was dropped, no on-disk format
  * inspection happens: the marker's own facts are the only admission input.
- * Call it after the lease is acquired (or with `reserve: false` on the
- * lease-less read-only passthrough paths) and before any profile/cache/Host
- * write. Read failures throw `HomeAdmissionError` and must be treated as
- * refusals.
+ * Call it before any profile/cache/Host write (or with `reserve: false` on
+ * read-only paths that never write). Read failures throw
+ * `HomeAdmissionError` and must be treated as refusals.
  */
 export async function runHomeCompatibilityChain(input: {
   home: string
   release: ReleaseManifest
-  lease?: HomeLease
+  session?: HomeSession
   /** True when this entrypoint is about to write the home. */
   reserve: boolean
 }): Promise<HomePreflightVerdict> {
-  if (input.reserve && input.lease === undefined) {
+  if (input.reserve && input.session === undefined) {
     throw new HomeAdmissionError(
       'MARKER_UNREADABLE',
-      'reserving a write epoch requires the home lease',
+      'reserving a write epoch requires the home session',
     )
   }
   const raw = await readHomeCompatibilityMarker(input.home)
@@ -166,7 +114,7 @@ export async function runHomeCompatibilityChain(input: {
   if (input.reserve) {
     await reserveHomeWrite({
       home: input.home,
-      lease: input.lease!,
+      session: input.session!,
       release: input.release,
       decision: { kind: 'allow', dataEpoch: input.release.dataEpoch, formats: {} },
     })

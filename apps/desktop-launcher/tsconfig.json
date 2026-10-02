@@ -11,9 +11,6 @@
       "path": "../../packages/desktop-plugin"
     },
     {
-      "path": "../../packages/home-lease"
-    },
-    {
       "path": "../../packages/host-supervisor"
     },
     {
