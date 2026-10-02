@@ -21,8 +21,6 @@ const requireFromShellCore = createRequire(
 const shellCore = requireFromShellCore('@deskwork/shell-core')
 const { createHomeSession } = requireFromShellCore('@deskwork/desktop-contracts/home-session')
 const { RecoverySessionController, StartupFailureError, createDesktopProfileRecovery } = shellCore
-const contracts = requireFromShellCore('@deskwork/desktop-contracts/package.json')
-void contracts
 
 const fixtures = []
 
@@ -102,7 +100,7 @@ try {
     )
     // Normal profile carries a hostile third-party bundle that would crash any
     // loader; Safe Mode must never touch it.
-    const normalDir = path.join(home, 'profiles', 'desktop')
+    const normalDir = path.join(home, 'profiles', 'deskwork')
     await mkdir(normalDir, { recursive: true, mode: 0o700 })
     await writeFile(
       path.join(normalDir, 'package.json'),
@@ -142,8 +140,8 @@ try {
   {
     const userData = await freshRoot('session')
     const home = path.join(userData, 'home')
-    await mkdir(path.join(home, 'profiles', 'desktop'), { recursive: true, mode: 0o700 })
-    const homeSession = await createHomeSession({ home: home, profile: 'desktop' })
+    await mkdir(path.join(home, 'profiles', 'deskwork'), { recursive: true, mode: 0o700 })
+    const homeSession = await createHomeSession({ home: home, profile: 'deskwork' })
     const session = {
       attempts: [],
       views: [],
@@ -151,7 +149,11 @@ try {
     }
     session.controller = new RecoverySessionController({
       session: homeSession,
-      profile: createDesktopProfileRecovery({ home, profileName: 'desktop' }),
+      profile: createDesktopProfileRecovery({
+        home,
+        profileName: 'deskwork',
+        ownedProfileName: 'deskwork',
+      }),
       createAttempt: (_session, mode) => {
         session.attempts.push(mode)
         // The normal boot fails; the safe boot publishes its surface.
@@ -202,8 +204,8 @@ try {
   {
     const userData = await freshRoot('bridge-dead')
     const home = path.join(userData, 'home')
-    await mkdir(path.join(home, 'profiles', 'desktop'), { recursive: true, mode: 0o700 })
-    const homeSession = await createHomeSession({ home: home, profile: 'desktop' })
+    await mkdir(path.join(home, 'profiles', 'deskwork'), { recursive: true, mode: 0o700 })
+    const homeSession = await createHomeSession({ home: home, profile: 'deskwork' })
     const bridgeFailure = new StartupFailureError({
       stage: 'publish-surface',
       code: 'SURFACE_MISSING',
@@ -214,7 +216,11 @@ try {
     const session = { views: [], controller: undefined }
     session.controller = new RecoverySessionController({
       session: homeSession,
-      profile: createDesktopProfileRecovery({ home, profileName: 'desktop' }),
+      profile: createDesktopProfileRecovery({
+        home,
+        profileName: 'deskwork',
+        ownedProfileName: 'deskwork',
+      }),
       // Both the normal boot and the safe boot fail.
       createAttempt: () => ({
         start: () => Promise.reject(bridgeFailure),

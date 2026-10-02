@@ -19,6 +19,7 @@ const requireFromShellCore = createRequire(
 )
 const shellCore = requireFromShellCore('@deskwork/shell-core')
 const { createHomeSession } = requireFromShellCore('@deskwork/desktop-contracts/home-session')
+const { tryAcquireHostLock } = requireFromShellCore('@deskwork/host-supervisor/host-owner')
 
 const {
   RecoverySessionController,
@@ -35,7 +36,7 @@ async function freshHome(label) {
   void label
   const fixture = await createIsolatedHomeFixture()
   fixtures.push(fixture)
-  await mkdir(path.join(fixture.home, 'profiles', 'desktop'), { recursive: true, mode: 0o700 })
+  await mkdir(path.join(fixture.home, 'profiles', 'deskwork'), { recursive: true, mode: 0o700 })
   return fixture.home
 }
 
@@ -44,7 +45,7 @@ async function disposeHomes() {
 }
 
 async function leasedSession(home, options) {
-  const homeSession = await createHomeSession({ home: home, profile: 'desktop' })
+  const homeSession = await createHomeSession({ home: home, profile: 'deskwork' })
   const inMemoryMarker = { value: undefined }
   const marker = options.markerStore ?? {
     async read() {
@@ -58,12 +59,18 @@ async function leasedSession(home, options) {
     attempts: [],
     views: [],
     surfaces: [],
-    session,
+    // The home session this fixture claims the home with; several assertions
+    // compare the bootstrap's generation against it.
+    session: homeSession,
     controller: undefined,
   }
   session.controller = new RecoverySessionController({
     session: homeSession,
-    profile: createDesktopProfileRecovery({ home, profileName: 'desktop' }),
+    profile: createDesktopProfileRecovery({
+      home,
+      profileName: 'deskwork',
+      ownedProfileName: 'deskwork',
+    }),
     readRecoveryMarker: async () => marker.read(),
     writeRecoveryMarker: async (entry) => marker.write(entry),
     onHealthy: () => marker.clear?.(),
@@ -119,7 +126,7 @@ function matrixRow(row) {
 }
 
 async function manifestSha(home) {
-  return sha256File(path.join(home, 'profiles', 'desktop', 'package.json'))
+  return sha256File(path.join(home, 'profiles', 'deskwork', 'package.json'))
 }
 
 async function seedSentinels(home) {
@@ -139,16 +146,20 @@ async function assertSentinels(home) {
   }
 }
 
-async function expectLeaseRefusal(home) {
-  let refused = null
+// Mutual exclusion is the Host's kernel flock, not a session acquisition: a
+// home session is this process's own claim, while the lock is what stops a
+// second Host from ever writing the same home.
+async function expectHomeLockRefusal(home) {
+  const held = await tryAcquireHostLock(home)
+  if (held === undefined) throw new Error('the home lock was already held before the check')
   try {
-    await createHomeSession({ home: home, profile: 'desktop' })
-  } catch (error) {
-    refused = error
-  }
-  if (refused === null) throw new Error('second acquisition of a held home was not refused')
-  if (!String(refused.code ?? '').includes('BUSY')) {
-    throw new Error(`session refusal had unexpected code: ${refused.code}`)
+    const second = await tryAcquireHostLock(home)
+    if (second !== undefined) {
+      await second.release()
+      throw new Error('a second Host lock on the same home was granted')
+    }
+  } finally {
+    await held.release()
   }
 }
 
@@ -197,7 +208,7 @@ try {
     }
     // The reconcile created the three managed files; both transactions rolled
     // back and removed them again.
-    const manifest = path.join(home, 'profiles', 'desktop', 'package.json')
+    const manifest = path.join(home, 'profiles', 'deskwork', 'package.json')
     await readFile(manifest).then(
       () => {
         throw new Error('rollback left a transaction-created manifest behind')
@@ -224,7 +235,7 @@ try {
       boot: async () => {
         // The transaction applied; the user rewrites the candidate before the
         // failure is settled.
-        await writeFile(path.join(home, 'profiles', 'desktop', 'package.json'), drifted)
+        await writeFile(path.join(home, 'profiles', 'deskwork', 'package.json'), drifted)
         throw attributedFailure
       },
     })
@@ -241,7 +252,7 @@ try {
       leaseGeneration: session.session.generation,
     })
     if (session.controller.state !== 'recovery') throw new Error('conflict run not in recovery')
-    const manifest = await readFile(path.join(home, 'profiles', 'desktop', 'package.json'), 'utf8')
+    const manifest = await readFile(path.join(home, 'profiles', 'deskwork', 'package.json'), 'utf8')
     if (manifest !== drifted) throw new Error('conflict rollback overwrote user bytes')
     const states = await journalStates(home)
     if (!states.includes('conflict')) {
@@ -329,7 +340,7 @@ try {
   {
     const home = await freshHome('retention')
     await seedSentinels(home)
-    const manifestPath = path.join(home, 'profiles', 'desktop', 'package.json')
+    const manifestPath = path.join(home, 'profiles', 'deskwork', 'package.json')
     const retainedBeforeSha = await manifestSha(home)
     let lastGeneration = 'n/a'
     for (let round = 0; round < 24; round++) {
@@ -503,15 +514,15 @@ try {
       await session.controller.act('quit')
     }
 
-    // The session category never reaches the recovery window: a second
-    // acquisition of a held home must be refused at the entry lifecycle.
+    // The session category never reaches the recovery window: a second Host
+    // on a held home must be refused at the entry lifecycle.
     {
       const home = await freshHome('matrix-session')
       const session = await leasedSession(home, {
         boot: () => Promise.reject(runtimeFailure),
       })
       await session.controller.start().catch(() => undefined)
-      await expectLeaseRefusal(home)
+      await expectHomeLockRefusal(home)
       matrixRow({
         scenario: 'matrix-session',
         category: 'session',
