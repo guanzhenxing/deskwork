@@ -293,7 +293,13 @@ Error: spawn EPERM
 
 ### 9.4 环境限制（影响验收范围）
 
-本会话沙箱**无法启动 Electron**：保留 `ELECTRON_RUN_AS_NODE` 时 Electron 退化为 Node，去掉后 Chromium 沙箱初始化被拒（`sandbox initialization failed: Operation not permitted`）。因此 `smoke:dsh-ui`、`smoke:host-crash`、`smoke:profile-recovery`、`smoke:safe-mode`、`smoke:lifecycle` 等桌面冒烟本次**未执行**。替代证据是无头冒烟（纯 Node 启动 + 官方客户端组合图）与非 Electron 集成测试。
+本会话沙箱**无法启动 Electron**：保留 `ELECTRON_RUN_AS_NODE` 时 Electron 退化为 Node，去掉后 Chromium 沙箱初始化被拒（`sandbox initialization failed: Operation not permitted`）。
+
+**未执行**（需要 Electron）：`smoke:dsh-ui`、`smoke:host-crash`、`smoke:lifecycle`、`smoke:conversation`、`smoke:auth`、`smoke:navigation`、`smoke:package`、`smoke:assert-cleanup`。这些覆盖的正是 launcher 的 Electron 自举、窗口/托盘与恢复页。
+
+**已执行且通过**（纯 Node）：`smoke:headless`、`smoke:safe-mode`、`smoke:profile-recovery`。前两个冒烟在本方案落地后**从未被跑过**，补跑时发现四处缺陷（两处是本次改动引入，两处早于本次改动），已单独修复。
+
+替代证据是无头冒烟（纯 Node 启动 + 官方客户端组合图）与非 Electron 集成测试，后者在一个独立 Node 进程里真实启动 Host，因此 `runDshHost` 取得 home lock 这一步是被验证过的；未验证的是 Electron launcher 的接线。
 
 `pnpm check` 无法作为单条命令运行（corepack 缓存目录在沙箱外不可写），执行时改用工作区内 `COREPACK_HOME` 并逐项跑其六个组成部分；`pnpm install` 同理，用 `--lockfile-only` 更新锁文件后手工建立新增依赖的符号链接。
 
