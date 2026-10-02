@@ -291,17 +291,23 @@ Error: spawn EPERM
 - 阶段三方案只列了三处打包改动，实际连锁到 `resource-paths.ts`（三个只有测试在断言、生产零消费者的 `runtime-cli` 路径字段）、`verify-runtime-tree.mjs` 的第二闭包校验、`package-main.mjs` 的五个 CLI 场景。
 - 两个最大的测试文件（`supervisor.test.ts` 684 行、`recovery-controller.test.ts` 807 行）深度绑定已删除的 lease 语义，执行时整体重写；`supervisor.test.ts` 中"用 `mkdir` 失败触发未授权子进程"的初始建议被否决——那样会让"记录仍在"的断言恒假，改用"授权前子进程死亡"触发。
 
-### 9.4 环境限制（影响验收范围）
+### 9.4 验收范围（2026-10-02 晚修正）
 
-本会话沙箱**无法启动 Electron**：保留 `ELECTRON_RUN_AS_NODE` 时 Electron 退化为 Node，去掉后 Chromium 沙箱初始化被拒（`sandbox initialization failed: Operation not permitted`）。
+**此前本节写着"沙箱无法启动 Electron"，这个结论是错的。** 当时只试了 `env -u ELECTRON_RUN_AS_NODE`，漏了 `ELECTRON_DISABLE_SANDBOX=1`；两者同时给上之后 Electron 44.0.0 正常启动（`ELECTRON_READY_OK`）。
 
-**未执行**（需要 Electron）：`smoke:dsh-ui`、`smoke:host-crash`、`smoke:lifecycle`、`smoke:conversation`、`smoke:auth`、`smoke:navigation`、`smoke:package`、`smoke:assert-cleanup`。这些覆盖的正是 launcher 的 Electron 自举、窗口/托盘与恢复页。
+**已执行且通过**：
 
-**已执行且通过**（纯 Node）：`smoke:headless`、`smoke:safe-mode`、`smoke:profile-recovery`。前两个冒烟在本方案落地后**从未被跑过**，补跑时发现四处缺陷（两处是本次改动引入，两处早于本次改动），已单独修复。
+| 类别               | 冒烟                                                                                                               |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| 源码级（Electron） | `smoke:dsh-ui`、`smoke:host-crash`、`smoke:lifecycle`、`smoke:conversation`、`smoke:auth`、`smoke:navigation`      |
+| 纯 Node            | `smoke:headless`、`smoke:safe-mode`、`smoke:profile-recovery`                                                      |
+| 安装级             | 打包 `.app` 后以 `DSH_DESKTOP_SMOKE=ui` 直接启动，报告 `ui-ready`（launcher 与 Host 独立进程、profile `deskwork`） |
 
-替代证据是无头冒烟（纯 Node 启动 + 官方客户端组合图）与非 Electron 集成测试，后者在一个独立 Node 进程里真实启动 Host，因此 `runDshHost` 取得 home lock 这一步是被验证过的；未验证的是 Electron launcher 的接线。
+**仍不可执行**：`smoke:package` 需要 `release/artifacts.json`，而该文件只收录 DMG；`hdiutil create` 在本沙箱被拒绝（"操作不被允许"），因此 DMG 与其清单无法产出，`smoke:package` 的五个场景未跑。
 
-`pnpm check` 无法作为单条命令运行（corepack 缓存目录在沙箱外不可写），执行时改用工作区内 `COREPACK_HOME` 并逐项跑其六个组成部分；`pnpm install` 同理，用 `--lockfile-only` 更新锁文件后手工建立新增依赖的符号链接。
+**跑起来之后发现的缺陷**（全部由"从未跑过"造成，均已在 9.8 记录并修复）：三处冒烟失效、一处打包前置检查仍要求已删除的 `runtime-cli`、一处 `clearHostOwner` 语义与冒烟期望不符。
+
+**执行环境**：`pnpm` 的依赖校验在非 TTY 下会挂起，需要 `CI=true`；corepack 与 Electron 的缓存目录都在工作区外不可写，分别用 `COREPACK_HOME` 与把 `HOME` 指到工作区内绕过。
 
 ### 9.5 阶段五执行记录（2026-10-02）
 
@@ -333,3 +339,20 @@ Error: spawn EPERM
 
 - `planDesktopReconcile` 的重复文件守卫把"符号链接"与"非普通文件"合并成一条文案，导致按 symlink 断言的用例失败；现分开报告。
 - `reconcileDesktopProfile` 在幂等运行（无写入）时把 `beforeRevision` 报成 `undefined`，使"内容未变"与"无法确定"不可区分；现回退到当前字节的摘要，创建场景仍为 `undefined`。
+
+### 9.8 补跑冒烟发现的缺陷（2026-10-02 晚）
+
+这些都不是新功能，而是"改完之后没有真跑"留下的空洞。全部已修。
+
+| 位置                                                           | 问题                                                                                                                        | 来源                                 |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `tests/smoke/profile-recovery.mjs`                             | require 了 `desktop-contracts/package.json`——该包不导出这个子路径，冒烟在 `ERR_PACKAGE_PATH_NOT_EXPORTED` 上直接死掉        | 本次改动（重命名残留）               |
+| `tests/smoke/profile-recovery.mjs`                             | fixture 对象里一个裸 `session,` 简写指向自身，构造即 TDZ 崩溃                                                               | 本次改动（重命名残留）               |
+| 两个纯 Node 冒烟                                               | 仍用改名前的 profile 名 `'desktop'`，且没传 `ownedProfileName`，导致 reconcile 被整个跳过——没有事务、没有回滚、没有自动重启 | 早于本次改动（`c04bb33` 漏改调用点） |
+| `tests/smoke/profile-recovery.mjs`                             | 断言"第二次获取同一 home 被拒绝"——该性质已随 lease 一起废弃，互斥现在由 Host 的 flock 承担                                  | 本次改动（语义变更未同步）           |
+| `scripts/package-app.mjs`                                      | `assertStaged()` 仍要求 `runtime-cli/bin/dsh-native` 与 `runtime-cli/node/bin/node`，打包在第一步就失败                     | 本次改动（阶段三删 CLI 漏改）        |
+| `tests/smoke/package-main.mjs`                                 | 三个场景用被删除的第二份 Node 跑驱动                                                                                        | 本次改动（同上）                     |
+| `tests/smoke/dsh-ui.mjs` + `apps/desktop-launcher/src/main.ts` | 冒烟只断言工作台的侧栏面板；launcher 里对应有 55 行工作台校验死代码（`workbench-panel-verified` / `-failed`）               | 本次改动（阶段二删工作台漏改）       |
+| `packages/host-supervisor/src/host-owner.ts`                   | `clearHostOwner` 写墓碑而不是删除记录，与"退出后记录消失"的期望不符                                                         | 本次改动                             |
+
+教训写在这里而不是别处：**这八处里有六处是本次收敛自己造成的，而六处中的每一处都能被一条现成的冒烟命令抓到——只是那几条命令从来没跑过。** 静态检查、类型检查、单元测试和 lint 全绿，与"应用还能不能起来"是两件事。

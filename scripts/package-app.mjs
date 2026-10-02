@@ -28,8 +28,6 @@ async function assertStaged() {
     'app-shell/main.cjs',
     'runtime-host/lib/main.js',
     'runtime-host/lib/host-entry.js',
-    'runtime-cli/bin/dsh-native',
-    'runtime-cli/node/bin/node',
     'recovery/recovery-view.html',
     'compatibility.json',
   ]

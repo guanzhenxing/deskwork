@@ -97,17 +97,11 @@ async function makeControllerHome(label) {
 async function runControllerScenario(install, scenario) {
   const fixture = await makeControllerHome(scenario)
   try {
-    const node = path.join(
-      install.appPath,
-      'Contents',
-      'Resources',
-      'runtime-cli',
-      'node',
-      'bin',
-      'node',
-    )
+    // The installed app ships no second Node runtime: the CLI that needed one
+    // is gone. The driver only has to load the packaged ESM closure, so the
+    // Node running this smoke is the right interpreter.
     const child = spawn(
-      node,
+      process.execPath,
       [driverPath, path.join(install.appPath, 'Contents', 'Resources'), scenario, fixture.home],
       {
         cwd: fixture.userData,

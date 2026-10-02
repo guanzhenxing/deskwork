@@ -378,61 +378,6 @@ async function waitForOfficialUi(window: BrowserWindow): Promise<void> {
   throw new Error('Official DSH UI did not reach the M0 smoke markers')
 }
 
-/**
- * ui-smoke acceptance for the Deskwork workbench bundle: the official
- * sidebar must expose the Deskwork entry registered through the
- * `sidebar.panellist` slot, and clicking it must swap in the `main` panel
- * without a plugin-load failure. Runs only in the `ui` smoke mode; the DOM
- * probe asserts by visible label text, not by official markup classes.
- */
-async function verifyWorkbenchPanel(window: BrowserWindow): Promise<void> {
-  const deadline = Date.now() + 20_000
-  let clicked = false
-  while (Date.now() < deadline) {
-    const state = (await window.webContents.executeJavaScript(`(() => {
-      const findRow = () =>
-        [...document.querySelectorAll('button, [role="button"], li, a')].find((el) => {
-          const name = (el.getAttribute('aria-label') ?? el.textContent ?? '').trim()
-          return name.includes('Deskwork')
-        })
-      const row = findRow()
-      if (row === undefined) return { found: false }
-      row.click()
-      return { found: true }
-    })()`)) as { found: boolean }
-    if (state.found) clicked = true
-    const bodyText = (await window.webContents.executeJavaScript(
-      'document.body.innerText',
-    )) as string
-    if (bodyText.includes('Failed to load plugins')) {
-      smokeReport({ kind: 'workbench-panel-failed' })
-      throw new Error(
-        'Official DSH UI reported a plugin-load failure while verifying the workbench panel',
-      )
-    }
-    if (clicked && bodyText.includes('Deskwork 工作台（空面板占位）')) {
-      smokeReport({ kind: 'workbench-panel-verified', panel: 'deskwork' })
-      return
-    }
-    await new Promise((resolve) => setTimeout(resolve, 250))
-  }
-  smokeReport({
-    kind: 'workbench-panel-failed',
-    clicked,
-    // Diagnostics only: enough to tell "not in the boot graph" from "in the
-    // graph but the entry/panel probe missed" without reproducing by hand.
-    bootEntries: (await window.webContents
-      .executeJavaScript('window.__DSH_BOOT__?.entries?.map((entry) => entry.id) ?? []')
-      .catch(() => [])) as string[],
-    bodySnippet: (await window.webContents
-      .executeJavaScript('document.body.innerText.slice(0, 300)')
-      .catch(() => '')) as string,
-  })
-  throw new Error(
-    `workbench entry not verifiable in the official sidebar (clicked=${String(clicked)})`,
-  )
-}
-
 function toElectronTemplate(
   spec: readonly MenuItemSpec[],
   dispatch: (action: NativeUiAction) => void,
@@ -878,9 +823,6 @@ async function startApplication(): Promise<void> {
 
   if (smokeMode !== undefined && smokeMode !== 'recovery') {
     await waitForOfficialUi(port.window)
-    if (smokeMode === 'ui') {
-      await verifyWorkbenchPanel(port.window)
-    }
     if (isStartupPerfSmoke) {
       startupTimeline.mark('official-ui-ready')
     }

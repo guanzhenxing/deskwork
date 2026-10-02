@@ -1,4 +1,4 @@
-import { mkdir, open, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, open, readFile, rm } from 'node:fs/promises'
 import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 
@@ -102,11 +102,13 @@ export async function recordHostOwner(input: RecordHostOwnerInput): Promise<Host
   return record
 }
 
+/**
+ * Forget the recorded owner. Removal, not a tombstone: the lock is the
+ * authority on whether a Host is alive, so a leftover record is already read
+ * as stale, and "the record is gone" is one fewer state to reason about.
+ */
 export async function clearHostOwner(home: string): Promise<void> {
-  await ensureRunDirectory(home)
-  await writeFile(hostOwnerPath(home), `${JSON.stringify({ schemaVersion: 0 })}\n`, {
-    mode: 0o600,
-  }).catch(() => undefined)
+  await rm(hostOwnerPath(home), { force: true })
 }
 
 export type HostLock = Readonly<{ release(): Promise<void> }>
